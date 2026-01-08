@@ -3,7 +3,7 @@ import {
   policies,
   campusServices,
   announcements,
-} from "@/lib/db/schema";
+} from "@/lib/db/schema.pg";
 import { and, eq, lte, gte } from "drizzle-orm";
 
 export async function getStudentDashboard() {

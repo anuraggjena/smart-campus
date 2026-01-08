@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { db } from "@/lib/db/client";
-import { sessions, users } from "@/lib/db/schema";
+import { sessions, users } from "@/lib/db/schema.runtime";
 import { eq } from "drizzle-orm";
 
 const SESSION_COOKIE = "smartcampus_session";
