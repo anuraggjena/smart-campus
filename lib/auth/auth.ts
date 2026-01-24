@@ -23,7 +23,8 @@ export async function getSessionUser() {
 
   const { user, session } = result[0];
 
-  if (new Date() > session.expiresAt) {
+  const expiresAt = new Date(session.expiresAt);
+  if (expiresAt < new Date()) {
     return null;
   }
 

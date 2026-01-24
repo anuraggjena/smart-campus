@@ -1,17 +1,50 @@
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
+import { classifyIntent } from "@/lib/ai/intentClassifier";
+import { resolveAnswer } from "@/lib/intelligence/assistantEngine";
+import { db } from "@/lib/db/client";
+import { studentInteractions } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
-import { handleStudentQuery } from "@/lib/ai/assistant";
 
 export async function POST(req: Request) {
-  const user = await getSessionUser();
-  requireRole(user, ["STUDENT"]);
+  const student = await getSessionUser();
+  requireRole(student, ["STUDENT"]);
 
   const { query } = await req.json();
 
-  const result = await handleStudentQuery(user.id, query);
+  if (!query) {
+    return NextResponse.json(
+      { error: "Query is required" },
+      { status: 400 }
+    );
+  }
 
-  return NextResponse.json(result);
+  // 1. AI intent classification
+  const { intent, confidence } =
+    await classifyIntent(query);
+
+  // 2. Institutional resolution
+  const resolution = await resolveAnswer(
+    intent,
+    student.department
+  );
+
+  // 3. Persist interaction for analytics
+  await db.insert(studentInteractions).values({
+    userId: student.id,
+    role: "STUDENT",
+    intent,
+    aiConfidence: confidence,
+    followUp: false,
+  });
+
+  // 4. Response (AI is NOT authoritative)
+  return NextResponse.json({
+    intent,
+    confidence,
+    answer: {
+      policies: resolution.policies,
+      procedures: resolution.procedures,
+    },
+  });
 }

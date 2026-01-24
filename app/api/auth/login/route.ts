@@ -1,45 +1,78 @@
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { users, sessions } from "@/lib/db/schema.runtime";
+import { compare } from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { v4 as uuidv4 } from "uuid";
+import { addDays } from "date-fns";
 
 export async function POST(req: Request) {
-  const { email } = await req.json();
+  try {
+    const { email, password } = await req.json();
 
-  const user = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 }
+      );
+    }
 
-  if (user.length === 0) {
-    return NextResponse.json({ error: "Invalid user" }, { status: 401 });
-  }
+    // 1. Fetch user
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
-  const sessionId = uuidv4();
-  
-  const session = await db
-    .insert(sessions)
-    .values({
+    if (result.length === 0) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 }
+      );
+    }
+
+    const user = result[0];
+
+    // 2. Verify password
+    const isValid = await compare(password, user.passwordHash);
+
+    if (!isValid) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 }
+      );
+    }
+
+    // 3. Create session
+    const sessionId = crypto.randomUUID();
+    const expiresAt = addDays(new Date(), 7).toISOString();
+
+    await db.insert(sessions).values({
       id: sessionId,
-      userId: user[0].id,
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24h
-      createdAt: new Date(),
-    })
-    .returning();
+      userId: user.id,
+      expiresAt,
+    });
 
-  (await cookies()).set("smartcampus_session", sessionId, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-  });
+    // 4. Set session cookie
+    (await
+      // 4. Set session cookie
+      cookies()).set("smartcampus_session", sessionId, {
+      httpOnly: true,
+      sameSite: "lax",
+      expires: new Date(expiresAt),
+      path: "/",
+    });
 
-  return NextResponse.json({
-    success: true,
-    role: user[0].role,
-  });
+    // 5. Return role for frontend redirect
+    return NextResponse.json({
+      role: user.role,
+    });
+  } catch (err) {
+    console.error("LOGIN_ERROR", err);
+
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

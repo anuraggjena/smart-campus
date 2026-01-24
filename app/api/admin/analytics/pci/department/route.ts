@@ -1,9 +1,10 @@
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
-import { computeDepartmentPCI } from "@/lib/analytics/departmentAnalytics";
+import { db } from "@/lib/db/client";
+import { studentInteractions, users } from "@/lib/db/schema.runtime";
+import { eq, inArray } from "drizzle-orm";
+import { aggregateDomainPCI } from "@/lib/analytics/pciAggregator";
 
 export async function GET(req: Request) {
   const user = await getSessionUser();
@@ -19,6 +20,31 @@ export async function GET(req: Request) {
     );
   }
 
-  const result = await computeDepartmentPCI(department);
-  return NextResponse.json(result);
+  const deptUsers = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.department, department));
+
+  const userIds = deptUsers.map(u => u.id);
+
+  if (userIds.length === 0) {
+    return NextResponse.json({
+      department,
+      pci: 100,
+      interactions: 0,
+    });
+  }
+
+  const interactions = await db
+    .select()
+    .from(studentInteractions)
+    .where(inArray(studentInteractions.userId, userIds));
+
+  const pci = aggregateDomainPCI(interactions);
+
+  return NextResponse.json({
+    department,
+    pci,
+    interactions: interactions.length,
+  });
 }

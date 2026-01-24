@@ -1,23 +1,40 @@
-type IntentResult = {
+import { groq } from "./groqClient";
+
+export type AIIntentResult = {
   intent: string;
   confidence: number;
 };
 
-const KEYWORD_MAP: Record<string, string[]> = {
-  FEES: ["fee", "payment", "refund", "fine"],
-  EXAMS: ["exam", "test", "midsem", "endsem"],
-  HOSTEL: ["hostel", "room", "mess"],
-  LEAVE: ["leave", "permission", "pass"],
-};
+export async function classifyIntent(
+  query: string
+): Promise<AIIntentResult> {
+  const response = await groq.chat.completions.create({
+    model: "llama3-70b-8192",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an intent classifier for a university campus system. Return JSON only.",
+      },
+      {
+        role: "user",
+        content: `
+Classify the intent of this query into one of:
+ACADEMICS, EXAMS, FEES, HOSTEL, GENERAL
 
-export function classifyIntent(query: string): IntentResult {
-  const lower = query.toLowerCase();
+Also provide confidence (0-100).
 
-  for (const intent in KEYWORD_MAP) {
-    if (KEYWORD_MAP[intent].some(k => lower.includes(k))) {
-      return { intent, confidence: 85 };
-    }
-  }
+Query: "${query}"
 
-  return { intent: "GENERAL", confidence: 50 };
+Respond ONLY as JSON:
+{ "intent": "...", "confidence": number }
+`,
+      },
+    ],
+    temperature: 0,
+  });
+
+  return JSON.parse(
+    response.choices[0].message.content!
+  );
 }
