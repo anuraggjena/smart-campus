@@ -5,27 +5,19 @@ import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
 
 export async function POST(req: Request) {
-  const student = await getSessionUser();
-  requireRole(student, ["STUDENT"]);
+  const user = await getSessionUser();
+  requireRole(user, ["STUDENT"]);
 
-  const { domain, message } = await req.json();
-
-  if (!domain || !message) {
-    return NextResponse.json(
-      { error: "Missing required fields" },
-      { status: 400 }
-    );
-  }
+  const body = await req.json();
 
   await db.insert(feedback).values({
-    userId: student.id,
-    department: student.department,
-    domain,
-    message,
+    userId: user!.id,
+    department: user!.department,
+    domain: body.domain,
+    message: body.message,
+    sentiment: body.sentiment, // from UI selection
+    priority: body.priority,
   });
 
-  return NextResponse.json({
-    success: true,
-    message: "Feedback submitted successfully",
-  });
+  return NextResponse.json({ ok: true });
 }

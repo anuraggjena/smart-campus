@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     student.department
   );
 
-  // 3. Persist interaction for analytics
+  // 3. Persist interaction for analytics (PCI, trends)
   await db.insert(studentInteractions).values({
     userId: student.id,
     role: "STUDENT",
@@ -38,13 +38,29 @@ export async function POST(req: Request) {
     followUp: false,
   });
 
-  // 4. Response (AI is NOT authoritative)
+  // 4. Convert structured resolution into readable answer
+  const policyText = resolution.policies
+    .map((p: any) => `• ${p.title}`)
+    .join("\n");
+
+  const procedureText = resolution.procedures
+    .map((p: any) => `• ${p.title}`)
+    .join("\n");
+
+  const finalAnswer = `
+Based on institutional records:
+
+Relevant Policies:
+${policyText || "No specific policy found."}
+
+Relevant Procedures:
+${procedureText || "No specific procedure found."}
+`;
+
+  // 5. Return UI-friendly response
   return NextResponse.json({
     intent,
     confidence,
-    answer: {
-      policies: resolution.policies,
-      procedures: resolution.procedures,
-    },
+    answer: finalAnswer.trim(),
   });
 }

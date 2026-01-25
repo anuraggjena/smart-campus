@@ -77,10 +77,10 @@ export async function getStudentDashboard() {
   };
 }
 
-export async function getActiveAnnouncements() {
+export async function getActiveAnnouncements(user: any) {
   const now = new Date().toISOString();
 
-  return db
+  const list = await db
     .select()
     .from(announcements)
     .where(
@@ -94,4 +94,30 @@ export async function getActiveAnnouncements() {
       )
     )
     .orderBy(announcements.activeFrom);
+
+  return list.filter((a) => {
+    if (a.visibility === "ALL_STUDENTS") return true;
+    if (a.visibility === "HOSTELLERS_ONLY" && user.isHosteller) return true;
+    return false;
+  });
+}
+
+export async function getVisibleCampusServices(user: any) {
+  const services = await db
+    .select()
+    .from(campusServices)
+    .where(eq(campusServices.isActive, true));
+
+  return services.filter((service) => {
+    if (service.visibility === "ALL_STUDENTS") return true;
+
+    if (
+      service.visibility === "HOSTELLERS_ONLY" &&
+      user.isHosteller
+    ) {
+      return true;
+    }
+
+    return false;
+  });
 }

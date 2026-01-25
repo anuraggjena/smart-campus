@@ -82,6 +82,11 @@ export const announcements = sqliteTable("announcements", {
   })
     .notNull()
     .default("ALL"),
+  visibility: text("visibility", {
+    enum: ["ALL_STUDENTS", "HOSTELLERS_ONLY"],
+  })
+    .notNull()
+    .default("ALL_STUDENTS"),
   department: text("department"), // null = college-wide
   priority: text("priority", {
     enum: ["NORMAL", "IMPORTANT", "URGENT"],

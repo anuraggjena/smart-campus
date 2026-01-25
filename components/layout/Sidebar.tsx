@@ -6,9 +6,11 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/student/dashboard", label: "Dashboard" },
   { href: "/student/assistant", label: "AI Assistant" },
+  { href: "/student/services", label: "Campus Services" },
   { href: "/student/procedures", label: "Procedures" },
   { href: "/student/announcements", label: "Announcements" },
   { href: "/student/feedback", label: "Feedback" },
+  { href: "/student/policies", label: "Policies" },
 ];
 
 export function Sidebar() {

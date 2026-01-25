@@ -1,14 +1,18 @@
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db/client";
+import { policies } from "@/lib/db/schema.runtime";
+import { eq } from "drizzle-orm";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
-import { getActivePolicies } from "@/lib/services/studentService";
 
 export async function GET() {
   const user = await getSessionUser();
   requireRole(user, ["STUDENT"]);
 
-  const policies = await getActivePolicies();
-  return NextResponse.json({ policies });
+  const data = await db
+    .select()
+    .from(policies)
+    .where(eq(policies.isActive, true));
+
+  return NextResponse.json(data);
 }

@@ -1,36 +1,36 @@
 import { db } from "@/lib/db/client";
 import { policies, procedures } from "@/lib/db/schema.runtime";
 import { eq } from "drizzle-orm";
-import {
-  isValidDomain,
-  Domain,
-} from "@/lib/constants/domains";
+
+type Domain =
+  | "FEES"
+  | "EXAMS"
+  | "HOSTEL"
+  | "ACADEMICS"
+  | "GENERAL";
 
 export async function resolveAnswer(
   intent: string,
   department: string
 ) {
-  if (!isValidDomain(intent)) {
-    return {
-      policies: [],
-      procedures: [],
-    };
-  }
+  const domain = intent as Domain;
 
-  const domain: Domain = intent;
-
-  const relatedPolicies = await db
+  const matchedPolicies = await db
     .select()
     .from(policies)
     .where(eq(policies.domain, domain));
 
-  const relatedProcedures = await db
+  const matchedProcedures = await db
     .select()
     .from(procedures)
     .where(eq(procedures.domain, domain));
 
   return {
-    policies: relatedPolicies,
-    procedures: relatedProcedures,
+    policies: matchedPolicies.map((p) => ({
+      title: p.title,
+    })),
+    procedures: matchedProcedures.map((p) => ({
+      title: p.title,
+    })),
   };
 }

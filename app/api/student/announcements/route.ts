@@ -7,7 +7,7 @@ export async function GET() {
   const user = await getSessionUser();
   requireRole(user, ["STUDENT"]);
 
-  const data = await getActiveAnnouncements();
+  const data = await getActiveAnnouncements(user);
 
   return NextResponse.json(data);
 }
