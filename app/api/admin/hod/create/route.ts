@@ -16,11 +16,11 @@ export async function POST(req: Request) {
     const {
       name,
       email,
-      department,
+      departmentId,
       password,
     } = await req.json();
 
-    if (!name || !email || !department || !password) {
+    if (!name || !email || !departmentId || !password) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       email,
       passwordHash,
       role: "HOD",
-      department,
+      departmentId,
       isHosteller: false, // not applicable
     });
 

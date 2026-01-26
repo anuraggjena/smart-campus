@@ -24,7 +24,7 @@ type Announcement = {
   title: string;
   message: string;
   audience: string;
-  department: string | null;
+  departmentId: string | null;
   priority: string;
   activeFrom: string;
   activeUntil: string | null;

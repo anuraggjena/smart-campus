@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   }
 
   await db.insert(academicEvents).values({
-    department: hod.department,
+    departmentId: hod.departmentId,
     title,
     description,
     type,
@@ -47,7 +47,7 @@ export async function GET() {
   const list = await db
     .select()
     .from(academicEvents)
-    .where(eq(academicEvents.department, hod.department))
+    .where(eq(academicEvents.departmentId, hod.departmentId))
     .orderBy(academicEvents.startDate);
 
   return NextResponse.json(list);

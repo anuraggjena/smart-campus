@@ -1,99 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
-type DomainPCI = {
-  domain: string;
-  pci: number;
-  interactions: number;
-};
-
-export default function HodDashboard() {
-  const [department, setDepartment] = useState("");
-  const [overallPCI, setOverallPCI] = useState(0);
-  const [domains, setDomains] = useState<DomainPCI[]>([]);
-
-  async function fetchDashboard() {
-    const res = await fetch("/api/hod/dashboard");
-    const data = await res.json();
-    setDepartment(data.department);
-    setOverallPCI(data.overallPCI);
-    setDomains(data.domainPCI);
-  }
+export default function HodDashboardPage() {
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    fetchDashboard();
+    fetch("/api/hod/dashboard")
+      .then((res) => res.json())
+      .then(setData);
   }, []);
 
-  function status(pci: number) {
-    if (pci >= 80) return "Clear";
-    if (pci >= 50) return "Needs Attention";
-    return "Unclear";
-  }
+  if (!data) return <div className="p-6">Loading dashboard...</div>;
 
   return (
-    <div className="space-y-8 max-w-5xl">
-      <h2 className="text-2xl font-semibold">
-        {department} Department Dashboard
-      </h2>
+    <div className="space-y-8">
+      <div className="bg-white p-6 rounded-xl shadow">
+        <h2 className="text-2xl font-semibold">Department Overview</h2>
+        <p className="text-gray-600">
+          Insights and activity from your department
+        </p>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Department Policy Clarity Index
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-4xl font-bold">
-            {overallPCI}
-          </p>
-          <p className="text-sm text-slate-600">
-            Clarity across student interactions
-          </p>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-4 gap-6">
+        <Card title="Announcements Created" value={data.announcements} />
+        <Card title="Academic Events" value={data.events} />
+        <Card title="Feedback Received" value={data.feedback} />
+        <Card title="Active Policies" value={data.policies} />
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Domain-wise Clarity
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {domains.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              No interaction data available yet.
-            </p>
-          ) : (
-            domains.map(d => (
-              <div
-                key={d.domain}
-                className="flex justify-between items-center border p-4 rounded-md"
-              >
-                <div>
-                  <p className="font-medium">
-                    {d.domain}
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    {d.interactions} interactions
-                  </p>
-                </div>
+      <div className="bg-white p-6 rounded-xl shadow">
+        <h3 className="text-lg font-semibold">Department PCI Insight</h3>
+        <p className="text-gray-700 mt-2">
+          {data.pciInsight}
+        </p>
+      </div>
+    </div>
+  );
+}
 
-                <Badge>
-                  {d.pci} – {status(d.pci)}
-                </Badge>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+function Card({ title, value }: any) {
+  return (
+    <div className="bg-white p-6 rounded-xl shadow text-center">
+      <div className="text-gray-500">{title}</div>
+      <div className="text-3xl font-bold mt-2">{value}</div>
     </div>
   );
 }

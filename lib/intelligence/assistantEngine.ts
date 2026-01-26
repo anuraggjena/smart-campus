@@ -11,7 +11,7 @@ type Domain =
 
 export async function resolveAnswer(
   intent: string,
-  department: string
+  departmentId: string
 ) {
   const domain = intent as Domain;
 

@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { studentInteractions, users } from "@/lib/db/schema.runtime";
+import {
+  announcements,
+  academicEvents,
+  feedback,
+  policies,
+  studentInteractions,
+  users,
+} from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
 import { aggregateDomainPCI } from "@/lib/analytics/pciAggregator";
@@ -10,52 +17,67 @@ export async function GET() {
   const hod = await getSessionUser();
   requireRole(hod, ["HOD"]);
 
-  // Fetch students of this department
+  const dept = hod.departmentId;
+
+  // Basic dashboard counts
+  const [
+    ann,
+    events,
+    fb,
+    pol,
+  ] = await Promise.all([
+    db.select().from(announcements).where(eq(announcements.departmentId, dept)),
+    db.select().from(academicEvents).where(eq(academicEvents.departmentId, dept)),
+    db.select().from(feedback).where(eq(feedback.departmentId, dept)),
+    db.select().from(policies).where(eq(policies.owningOffice, dept)),
+  ]);
+
+  // --- PCI SECTION (your correct logic kept) ---
+
   const deptStudents = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.department, hod.department));
+    .where(eq(users.departmentId, dept));
 
-  const studentIds = deptStudents.map(s => s.id);
+  const studentIds = deptStudents.map((s) => s.id);
 
-  if (studentIds.length === 0) {
-    return NextResponse.json({
-      overallPCI: 100,
-      domainPCI: [],
+  let overallPCI = 100;
+  let domainPCI: any[] = [];
+
+  if (studentIds.length > 0) {
+    const interactions = await db
+      .select()
+      .from(studentInteractions)
+      .where(inArray(studentInteractions.userId, studentIds));
+
+    const grouped: Record<string, any[]> = {};
+
+    interactions.forEach((i) => {
+      if (!grouped[i.intent]) grouped[i.intent] = [];
+      grouped[i.intent].push(i);
     });
-  }
 
-  // Fetch interactions by those students
-  const interactions = await db
-    .select()
-    .from(studentInteractions)
-    .where(inArray(studentInteractions.userId, studentIds));
-
-  const grouped: Record<string, any[]> = {};
-
-  interactions.forEach(i => {
-    if (!grouped[i.intent]) grouped[i.intent] = [];
-    grouped[i.intent].push(i);
-  });
-
-  const domainPCI = Object.entries(grouped).map(
-    ([domain, items]) => ({
+    domainPCI = Object.entries(grouped).map(([domain, items]) => ({
       domain,
       pci: aggregateDomainPCI(items),
       interactions: items.length,
-    })
-  );
+    }));
 
-  const overallPCI =
-    domainPCI.length === 0
-      ? 100
-      : Math.round(
-          domainPCI.reduce((a, b) => a + b.pci, 0) /
-            domainPCI.length
-        );
+    overallPCI =
+      domainPCI.length === 0
+        ? 100
+        : Math.round(
+            domainPCI.reduce((a, b) => a + b.pci, 0) /
+              domainPCI.length
+          );
+  }
 
   return NextResponse.json({
-    department: hod.department,
+    departmentId: dept,
+    announcements: ann.length,
+    events: events.length,
+    feedback: fb.length,
+    policies: pol.length,
     overallPCI,
     domainPCI,
   });

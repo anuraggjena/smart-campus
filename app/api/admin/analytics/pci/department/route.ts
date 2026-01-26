@@ -11,9 +11,9 @@ export async function GET(req: Request) {
   requireRole(user, ["ADMIN"]);
 
   const { searchParams } = new URL(req.url);
-  const department = searchParams.get("department");
+  const departments = searchParams.get("department");
 
-  if (!department) {
+  if (!departments) {
     return NextResponse.json(
       { error: "department required" },
       { status: 400 }
@@ -23,13 +23,13 @@ export async function GET(req: Request) {
   const deptUsers = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.department, department));
+    .where(eq(users.departmentId, departments));
 
   const userIds = deptUsers.map(u => u.id);
 
   if (userIds.length === 0) {
     return NextResponse.json({
-      department,
+      departments,
       pci: 100,
       interactions: 0,
     });
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
   const pci = aggregateDomainPCI(interactions);
 
   return NextResponse.json({
-    department,
+    departments,
     pci,
     interactions: interactions.length,
   });

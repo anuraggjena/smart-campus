@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
   await db.insert(feedback).values({
     userId: user!.id,
-    department: user!.department,
+    departmentId: user!.departmentId,
     domain: body.domain,
     message: body.message,
     sentiment: body.sentiment, // from UI selection

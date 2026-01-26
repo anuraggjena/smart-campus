@@ -10,21 +10,25 @@ export async function getSessionUser() {
   if (!sessionId) return null;
 
   const result = await db
-    .select({
-      user: users,
-      session: sessions,
-    })
-    .from(sessions)
-    .innerJoin(users, eq(users.id, sessions.userId))
-    .where(eq(sessions.id, sessionId))
-    .limit(1);
+  .select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    role: users.role,
+    departmentId: users.departmentId,
+    isHosteller: users.isHosteller,
+    expiresAt: sessions.expiresAt,
+  })
+  .from(sessions)
+  .innerJoin(users, eq(users.id, sessions.userId))
+  .where(eq(sessions.id, sessionId))
+  .limit(1);
 
   if (result.length === 0) return null;
 
-  const { user, session } = result[0];
+  const user = result[0];
 
-  const expiresAt = new Date(session.expiresAt);
-  if (expiresAt < new Date()) {
+  if (new Date(user.expiresAt) < new Date()) {
     return null;
   }
 

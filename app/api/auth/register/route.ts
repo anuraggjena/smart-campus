@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     name,
     email,
     password,
-    department,
+    departmentId,
     isHosteller,
   } = body;
 
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     !name ||
     !email ||
     !password ||
-    !department
+    !departmentId
   ) {
     return NextResponse.json(
       { error: "Missing required fields" },
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     email,
     passwordHash,
     role: "STUDENT",
-    department,
+    departmentId,
     isHosteller: Boolean(isHosteller),
   });
 

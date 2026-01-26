@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     title,
     message,
     audience: "STUDENTS",
-    department: hod.department, // enforced from session
+    departmentId: hod.departmentId,
     priority: priority ?? "NORMAL",
     activeFrom,
     activeUntil: activeUntil ?? null,
@@ -48,7 +48,7 @@ export async function GET() {
   const list = await db
     .select()
     .from(announcements)
-    .where(eq(announcements.department, hod.department))
+    .where(eq(announcements.departmentId, hod.departmentId))
     .orderBy(announcements.createdAt);
 
   return NextResponse.json(list);

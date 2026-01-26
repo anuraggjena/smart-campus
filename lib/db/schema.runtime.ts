@@ -15,12 +15,19 @@ export const users = sqliteTable("users", {
   role: text("role", {
     enum: ["STUDENT", "HOD", "ADMIN"],
   }).notNull(),
-  department: text("department").notNull(),
+  departmentId: text("department_id").notNull()
+  .references(() => departments.id),
   isHosteller: integer("is_hosteller", { mode: "boolean" })
     .default(false),
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
+});
+
+export const departments = sqliteTable("departments", {
+  id: text("id").primaryKey(),
+  code: text("code").notNull().unique(),   // CSE, ECE, MECH
+  name: text("name").notNull(),            // Computer Science Engineering
 });
 
 export const sessions = sqliteTable("sessions", {
@@ -87,7 +94,8 @@ export const announcements = sqliteTable("announcements", {
   })
     .notNull()
     .default("ALL_STUDENTS"),
-  department: text("department"), // null = college-wide
+  departmentId: text("department_id").notNull()
+  .references(() => departments.id),
   priority: text("priority", {
     enum: ["NORMAL", "IMPORTANT", "URGENT"],
   })
@@ -153,7 +161,8 @@ export const academicEvents = sqliteTable("academic_events", {
   id: text("id")
     .primaryKey()
     .default(sql`(lower(hex(randomblob(16))))`),
-  department: text("department").notNull(),
+  departmentId: text("department_id").notNull()
+  .references(() => departments.id),
   title: text("title").notNull(),
   description: text("description").notNull(),
   type: text("type", {
@@ -199,7 +208,8 @@ export const feedback = sqliteTable("feedback", {
     .primaryKey()
     .default(sql`(lower(hex(randomblob(16))))`),
   userId: text("user_id").notNull(),
-  department: text("department").notNull(),
+  departmentId: text("department_id").notNull()
+  .references(() => departments.id),
   domain: text("domain", {
     enum: [
       "ACADEMICS",

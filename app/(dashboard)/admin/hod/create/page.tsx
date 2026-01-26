@@ -28,7 +28,7 @@ export default function CreateHODPage() {
       body: JSON.stringify({
         name: form.name.value,
         email: form.email.value,
-        department: form.department.value,
+        departmentId: form.departmentId.value,
         password: form.password.value,
       }),
     });

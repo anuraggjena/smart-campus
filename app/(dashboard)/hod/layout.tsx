@@ -1,15 +1,15 @@
 import { ReactNode } from "react";
 import { Topbar } from "@/components/layout/Topbar";
-import { AdminSidebar } from "@/components/layout/AdminSidebar";
+import { HodSidebar } from "@/components/layout/HodSidebar";
 
-export default function AdminLayout({
+export default function HodLayout({
   children,
 }: {
   children: ReactNode;
 }) {
   return (
     <div className="flex h-screen bg-slate-100">
-      <AdminSidebar />
+      <HodSidebar />
       <div className="flex-1 flex flex-col">
         <Topbar />
         <main className="flex-1 overflow-y-auto p-8">

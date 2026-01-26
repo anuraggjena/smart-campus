@@ -12,7 +12,7 @@ export async function GET() {
   const list = await db
     .select()
     .from(feedback)
-    .where(eq(feedback.department, hod.department))
+    .where(eq(feedback.departmentId, hod.departmentId))
     .orderBy(feedback.createdAt);
 
   return NextResponse.json(list);

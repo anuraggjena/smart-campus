@@ -25,6 +25,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -36,7 +37,9 @@ export default function LoginPage() {
 
       // Session cookie is now set automatically by browser
       // Fetch user to know role and redirect accordingly
-      const meRes = await fetch("/api/auth/me");
+      const meRes = await fetch("/api/auth/me", {
+        credentials: "include",
+      });
       const user = await meRes.json();
 
       if (user.role === "ADMIN") {

@@ -5,33 +5,27 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 
 const links = [
-  { href: "/student/dashboard", label: "Dashboard" },
-  { href: "/student/assistant", label: "AI Assistant" },
-  { href: "/student/services", label: "Campus Services" },
-  { href: "/student/procedures", label: "Procedures" },
-  { href: "/student/announcements", label: "Announcements" },
-  { href: "/student/feedback", label: "Feedback" },
-  { href: "/student/policies", label: "Policies" },
+  { href: "/admin/dashboard", label: "Dashboard" },
+  { href: "/admin/services", label: "Campus Services" },
+  { href: "/admin/announcements", label: "Announcements" },
+  { href: "/admin/policies", label: "Policies" },
 ];
 
-export function Sidebar() {
+export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
   }
 
   return (
-    <div className="w-64 h-screen bg-white border-r shadow-sm relative">
-      {/* Top */}
+    <div className="w-64 bg-white border-r shadow-sm">
       <div className="p-6 text-xl font-semibold">
         Smart Campus
       </div>
 
-      {/* Links */}
-      <nav className="flex flex-col gap-1 px-4 pb-24">
+      <nav className="flex flex-col gap-1 px-4">
         {links.map((link) => (
           <Link
             key={link.href}
@@ -47,9 +41,8 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Absolute bottom logout */}
-      <div className="absolute bottom-0 left-0 w-full p-4 border-t bg-white">
-        <Button variant="outline" className="w-full" onClick={logout}>
+      <div className="h-16 bg-white border-b flex items-center justify-end px-6">
+        <Button variant="outline" onClick={logout}>
           Logout
         </Button>
       </div>
