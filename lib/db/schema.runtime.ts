@@ -142,6 +142,8 @@ export const studentInteractions = sqliteTable("student_interactions", {
     .primaryKey()
     .default(sql`(lower(hex(randomblob(16))))`),
   userId: text("user_id").notNull(),
+  departmentId: text("department_id").notNull()
+  .references(() => departments.id),
   role: text("role").notNull(), // STUDENT (future-proof)
   intent: text("intent").notNull(), // FEES, EXAMS, HOSTEL, etc.
   policyCode: text("policy_code"), 
