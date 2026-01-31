@@ -11,20 +11,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type CampusService = {
   id: string;
   name: string;
   description: string;
   category: string;
-  owningOffice: string;
   visibility: string;
   isActive: boolean;
+  officeName: string;
+};
+
+type Office = {
+  id: string;
+  name: string;
 };
 
 export default function AdminCampusServicesPage() {
   const [services, setServices] = useState<CampusService[]>([]);
+  const [offices, setOffices] = useState<Office[]>([]);
   const [loading, setLoading] = useState(false);
 
   async function fetchServices() {
@@ -33,8 +45,15 @@ export default function AdminCampusServicesPage() {
     setServices(data);
   }
 
+  async function fetchOffices() {
+    const res = await fetch("/api/admin/offices");
+    const data = await res.json();
+    setOffices(data);
+  }
+
   useEffect(() => {
     fetchServices();
+    fetchOffices();
   }, []);
 
   async function toggleStatus(id: string, isActive: boolean) {
@@ -59,7 +78,7 @@ export default function AdminCampusServicesPage() {
         name: form.name.value,
         description: form.description.value,
         category: form.category.value,
-        owningOffice: form.owningOffice.value,
+        owningOfficeId: form.owningOfficeId.value,
         visibility: form.visibility.value,
       }),
     });
@@ -81,7 +100,10 @@ export default function AdminCampusServicesPage() {
           <CardTitle>Create New Service</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form
+            onSubmit={handleCreate}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
             <div>
               <Label>Name</Label>
               <Input name="name" required />
@@ -89,7 +111,18 @@ export default function AdminCampusServicesPage() {
 
             <div>
               <Label>Owning Office</Label>
-              <Input name="owningOffice" required />
+              <Select name="owningOfficeId" required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select office" />
+                </SelectTrigger>
+                <SelectContent>
+                  {offices.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="md:col-span-2">
@@ -121,8 +154,12 @@ export default function AdminCampusServicesPage() {
                   <SelectValue placeholder="Select visibility" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL_STUDENTS">All Students</SelectItem>
-                  <SelectItem value="HOSTELLERS_ONLY">Hostellers Only</SelectItem>
+                  <SelectItem value="ALL_STUDENTS">
+                    All Students
+                  </SelectItem>
+                  <SelectItem value="HOSTELLERS_ONLY">
+                    Hostellers Only
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -140,48 +177,43 @@ export default function AdminCampusServicesPage() {
           <CardTitle>Existing Services</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {services.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              No campus services created yet.
-            </p>
-          ) : (
-            services.map(service => (
-              <div
-                key={service.id}
-                className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border p-4 rounded-md"
-              >
-                <div>
-                  <p className="font-medium">{service.name}</p>
-                  <p className="text-sm text-slate-600">
-                    {service.description}
-                  </p>
+          {services.map((service) => (
+            <div
+              key={service.id}
+              className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border p-4 rounded-md"
+            >
+              <div>
+                <p className="font-medium">{service.name}</p>
+                <p className="text-sm text-slate-600">
+                  {service.description}
+                </p>
 
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="secondary">
-                      {service.category}
+                <div className="flex gap-2 mt-2">
+                  <Badge>{service.category}</Badge>
+                  <Badge variant="outline">
+                    {service.visibility}
+                  </Badge>
+                  <Badge variant="secondary">
+                    {service.officeName}
+                  </Badge>
+                  {!service.isActive && (
+                    <Badge variant="destructive">
+                      Inactive
                     </Badge>
-                    <Badge variant="outline">
-                      {service.visibility}
-                    </Badge>
-                    {!service.isActive && (
-                      <Badge variant="destructive">
-                        Inactive
-                      </Badge>
-                    )}
-                  </div>
+                  )}
                 </div>
-
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    toggleStatus(service.id, service.isActive)
-                  }
-                >
-                  {service.isActive ? "Deactivate" : "Activate"}
-                </Button>
               </div>
-            ))
-          )}
+
+              <Button
+                variant="outline"
+                onClick={() =>
+                  toggleStatus(service.id, service.isActive)
+                }
+              >
+                {service.isActive ? "Deactivate" : "Activate"}
+              </Button>
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>

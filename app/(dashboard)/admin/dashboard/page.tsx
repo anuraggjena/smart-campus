@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 type DomainPCI = {
@@ -15,83 +10,93 @@ type DomainPCI = {
   interactions: number;
 };
 
-export default function AdminDashboard() {
-  const [overallPCI, setOverallPCI] = useState<number>(0);
-  const [domains, setDomains] = useState<DomainPCI[]>([]);
+type DeptPCI = {
+  department: string;
+  pci: number;
+  interactions: number;
+};
 
-  async function fetchDashboard() {
-    const res = await fetch("/api/admin/dashboard");
-    const data = await res.json();
-    setOverallPCI(data.overallPCI);
-    setDomains(data.domainPCI);
-  }
+export default function AdminDashboard() {
+  const [overallPCI, setOverallPCI] = useState(0);
+  const [domains, setDomains] = useState<DomainPCI[]>([]);
+  const [departments, setDepartments] = useState<DeptPCI[]>([]);
 
   useEffect(() => {
-    fetchDashboard();
+    fetch("/api/admin/dashboard")
+      .then(res => res.json())
+      .then(data => {
+        setOverallPCI(data.overallPCI);
+        setDomains(data.domainPCI || []);
+        setDepartments(data.departmentPCI || []);
+      });
   }, []);
 
-  function pciStatus(pci: number) {
-    if (pci >= 80) return "Clear";
-    if (pci >= 50) return "Needs Attention";
-    return "Unclear";
-  }
-
-  function pciColor(pci: number) {
-    if (pci >= 80) return "bg-green-100 text-green-800";
-    if (pci >= 50) return "bg-yellow-100 text-yellow-800";
-    return "bg-red-100 text-red-800";
-  }
+  const pciColor = (pci: number) => {
+    if (pci >= 80) return "bg-green-100 text-green-700";
+    if (pci >= 50) return "bg-yellow-100 text-yellow-700";
+    return "bg-red-100 text-red-700";
+  };
 
   return (
-    <div className="space-y-8 max-w-5xl">
-      <h2 className="text-2xl font-semibold">
-        Admin Dashboard
-      </h2>
+    <div className="space-y-8">
+      <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
 
-      {/* OVERALL PCI */}
+      {/* Overall PCI */}
       <Card>
         <CardHeader>
           <CardTitle>Campus Policy Clarity Index</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-4xl font-bold">
-            {overallPCI}
-          </p>
-          <p className="text-sm text-slate-600">
-            Overall clarity across institutional policies
+          <p className="text-5xl font-bold">{overallPCI}</p>
+          <p className="text-sm text-slate-500">
+            Overall institutional clarity based on student queries
           </p>
         </CardContent>
       </Card>
 
-      {/* DOMAIN PCI */}
+      {/* Domain PCI */}
       <Card>
         <CardHeader>
-          <CardTitle>Policy Clarity by Domain</CardTitle>
+          <CardTitle>PCI by Domain</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {domains.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              No interaction data available yet.
-            </p>
-          ) : (
-            domains.map(d => (
-              <div
-                key={d.domain}
-                className="flex justify-between items-center border p-4 rounded-md"
-              >
-                <div>
-                  <p className="font-medium">{d.domain}</p>
-                  <p className="text-sm text-slate-600">
-                    {d.interactions} interactions
-                  </p>
-                </div>
-
-                <Badge className={pciColor(d.pci)}>
-                  {d.pci} – {pciStatus(d.pci)}
-                </Badge>
+        <CardContent className="grid gap-4">
+          {domains.map(d => (
+            <div
+              key={d.domain}
+              className="flex justify-between items-center border rounded-lg p-4"
+            >
+              <div>
+                <p className="font-medium">{d.domain}</p>
+                <p className="text-xs text-slate-500">
+                  {d.interactions} interactions
+                </p>
               </div>
-            ))
-          )}
+              <Badge className={pciColor(d.pci)}>{d.pci}</Badge>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Department PCI */}
+      <Card>
+        <CardHeader>
+          <CardTitle>PCI by Department</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {departments.map(d => (
+            <div
+              key={d.department}
+              className="flex justify-between items-center border rounded-lg p-4"
+            >
+              <div>
+                <p className="font-medium">{d.department}</p>
+                <p className="text-xs text-slate-500">
+                  {d.interactions} interactions
+                </p>
+              </div>
+              <Badge className={pciColor(d.pci)}>{d.pci}</Badge>
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>

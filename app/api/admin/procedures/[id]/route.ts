@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { policies, offices } from "@/lib/db/schema.runtime";
+import { procedures, offices } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
 import { eq } from "drizzle-orm";
@@ -13,15 +13,20 @@ export async function PUT(
   requireRole(admin, ["ADMIN"]);
 
   const {
-    code,
     title,
     domain,
+    steps,
     owningOffice,
-    content,
-    version,
   } = await req.json();
 
-  // Validate department again
+  if (!title || !domain || !steps || !owningOffice) {
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 }
+    );
+  }
+
+  // ✅ Validate office exists
   const office = await db
     .select()
     .from(offices)
@@ -30,25 +35,23 @@ export async function PUT(
 
   if (office.length === 0) {
     return NextResponse.json(
-      { error: "Invalid office" },
+      { error: "Invalid owning office" },
       { status: 400 }
     );
   }
 
   await db
-    .update(policies)
+    .update(procedures)
     .set({
-      code,
       title,
       domain,
+      stepsJson: JSON.stringify(steps),
       owningOffice,
-      content,
-      version,
     })
-    .where(eq(policies.id, params.id));
+    .where(eq(procedures.id, params.id));
 
   return NextResponse.json({
     success: true,
-    message: "Policy updated",
+    message: "Procedure updated successfully",
   });
 }

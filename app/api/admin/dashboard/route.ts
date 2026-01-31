@@ -1,26 +1,36 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { studentInteractions } from "@/lib/db/schema.runtime";
+import {
+  studentInteractions,
+  users,
+  departments,
+} from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
 import { aggregateDomainPCI } from "@/lib/analytics/pciAggregator";
+import { eq } from "drizzle-orm";
 
 export async function GET() {
   const admin = await getSessionUser();
   requireRole(admin, ["ADMIN"]);
 
   const interactions = await db
-    .select()
-    .from(studentInteractions);
+    .select({
+      intent: studentInteractions.intent,
+      userId: studentInteractions.userId,
+      departmentId: users.departmentId,
+    })
+    .from(studentInteractions)
+    .innerJoin(users, eq(users.id, studentInteractions.userId));
 
-  const grouped: Record<string, any[]> = {};
-
-  interactions.forEach(i => {
-    if (!grouped[i.intent]) grouped[i.intent] = [];
-    grouped[i.intent].push(i);
+  // -------- Domain PCI --------
+  const domainGrouped: Record<string, any[]> = {};
+  interactions.forEach((i) => {
+    if (!domainGrouped[i.intent]) domainGrouped[i.intent] = [];
+    domainGrouped[i.intent].push(i);
   });
 
-  const domainPCI = Object.entries(grouped).map(
+  const domainPCI = Object.entries(domainGrouped).map(
     ([domain, items]) => ({
       domain,
       pci: aggregateDomainPCI(items),
@@ -28,6 +38,31 @@ export async function GET() {
     })
   );
 
+  // -------- Department PCI --------
+  const deptGrouped: Record<string, any[]> = {};
+  interactions.forEach((i) => {
+    if (!deptGrouped[i.departmentId])
+      deptGrouped[i.departmentId] = [];
+    deptGrouped[i.departmentId].push(i);
+  });
+
+  const deptPCI = await Promise.all(
+    Object.entries(deptGrouped).map(async ([deptId, items]) => {
+      const dept = await db
+        .select()
+        .from(departments)
+        .where(eq(departments.id, deptId))
+        .limit(1);
+
+      return {
+        department: dept[0]?.name ?? "Unknown",
+        pci: aggregateDomainPCI(items),
+        interactions: items.length,
+      };
+    })
+  );
+
+  // -------- Overall PCI --------
   const overallPCI =
     domainPCI.length === 0
       ? 100
@@ -39,5 +74,7 @@ export async function GET() {
   return NextResponse.json({
     overallPCI,
     domainPCI,
+    departmentPCI: deptPCI,
+    totalInteractions: interactions.length,
   });
 }

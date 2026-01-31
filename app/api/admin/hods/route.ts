@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { feedback, departments } from "@/lib/db/schema.runtime";
+import { users, departments } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
 import { eq } from "drizzle-orm";
@@ -11,22 +11,17 @@ export async function GET() {
 
   const list = await db
     .select({
-      id: feedback.id,
-      message: feedback.message,
-      domain: feedback.domain,
-      sentiment: feedback.sentiment,
-      priority: feedback.priority,
-      status: feedback.status,
-      createdAt: feedback.createdAt,
+      id: users.id,
+      name: users.name,
+      email: users.email,
       departmentName: departments.name,
-      departmentCode: departments.code,
     })
-    .from(feedback)
-    .leftJoin(
+    .from(users)
+    .innerJoin(
       departments,
-      eq(feedback.departmentId, departments.id)
+      eq(users.departmentId, departments.id)
     )
-    .orderBy(feedback.createdAt);
+    .where(eq(users.role, "HOD"));
 
   return NextResponse.json(list);
 }

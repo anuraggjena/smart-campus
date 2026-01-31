@@ -34,6 +34,8 @@ type Announcement = {
 export default function AdminAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
+  const [departments, setDepartments] = useState<
+  { id: string; code: string; name: string }[]>([]);
 
   async function fetchAnnouncements() {
     const res = await fetch("/api/admin/announcements");
@@ -41,8 +43,15 @@ export default function AdminAnnouncementsPage() {
     setAnnouncements(data);
   }
 
+  async function fetchDepartments() {
+    const res = await fetch("/api/departments"); // simple public route
+    const data = await res.json();
+    setDepartments(data);
+  }
+
   useEffect(() => {
     fetchAnnouncements();
+    fetchDepartments();
   }, []);
 
   async function toggleStatus(id: string, isActive: boolean) {
@@ -67,6 +76,7 @@ export default function AdminAnnouncementsPage() {
         title: form.title.value,
         message: form.message.value,
         audience: form.audience.value,
+        departmentId: form.departmentId.value || null,
         priority: form.priority.value,
         activeFrom: form.activeFrom.value,
         activeUntil: form.activeUntil.value || null,
@@ -99,37 +109,45 @@ export default function AdminAnnouncementsPage() {
               <Input name="title" required />
             </div>
 
+            {/* Audience */}
             <div>
               <Label>Audience</Label>
-              <Select name="audience">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select audience" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All</SelectItem>
-                  <SelectItem value="STUDENTS">Students</SelectItem>
-                  <SelectItem value="HODS">HODs</SelectItem>
-                </SelectContent>
-              </Select>
+              <select name="audience" className="w-full border p-2 rounded">
+                <option value="ALL_STUDENTS">All Students</option>
+                <option value="HOSTELLERS_ONLY">Hostellers Only</option>
+                <option value="DEPARTMENT_ONLY">Department Only</option>
+              </select>
+            </div>
+
+            {/* Department (only used if DEPARTMENT_ONLY) */}
+            <div>
+              <Label>Department (if department only)</Label>
+              <select
+                name="departmentId"
+                className="w-full border p-2 rounded"
+                defaultValue=""
+              >
+                <option value="">None</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.code} — {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Label>Priority</Label>
+              <select name="priority" className="w-full border p-2 rounded">
+                <option value="NORMAL">Normal</option>
+                <option value="IMPORTANT">Important</option>
+                <option value="URGENT">Urgent</option>
+              </select>
             </div>
 
             <div className="md:col-span-2">
               <Label>Message</Label>
               <Input name="message" required />
-            </div>
-
-            <div>
-              <Label>Priority</Label>
-              <Select name="priority">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NORMAL">Normal</SelectItem>
-                  <SelectItem value="IMPORTANT">Important</SelectItem>
-                  <SelectItem value="URGENT">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <div>

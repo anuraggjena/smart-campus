@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { campusServices } from "@/lib/db/schema.runtime";
+import { campusServices, offices } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
+import { eq } from "drizzle-orm";
 
 export async function POST(req: Request) {
   const admin = await getSessionUser();
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
     name,
     description,
     category,
-    owningOffice,
+    owningOffice, // ← this is officeId now
     visibility,
   } = await req.json();
 
@@ -23,11 +24,25 @@ export async function POST(req: Request) {
     );
   }
 
+  // ✅ Validate office (NOT department)
+  const office = await db
+    .select()
+    .from(offices)
+    .where(eq(offices.id, owningOffice))
+    .limit(1);
+
+  if (office.length === 0) {
+    return NextResponse.json(
+      { error: "Invalid office" },
+      { status: 400 }
+    );
+  }
+
   await db.insert(campusServices).values({
     name,
     description,
     category,
-    owningOffice,
+    owningOffice, // office id stored here
     visibility: visibility ?? "ALL_STUDENTS",
     isActive: true,
   });
@@ -43,8 +58,20 @@ export async function GET() {
   requireRole(admin, ["ADMIN"]);
 
   const services = await db
-    .select()
+    .select({
+      id: campusServices.id,
+      name: campusServices.name,
+      description: campusServices.description,
+      category: campusServices.category,
+      visibility: campusServices.visibility,
+      isActive: campusServices.isActive,
+      officeName: offices.name,
+    })
     .from(campusServices)
+    .innerJoin(
+      offices,
+      eq(campusServices.owningOffice, offices.id)
+    )
     .orderBy(campusServices.createdAt);
 
   return NextResponse.json(services);

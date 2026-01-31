@@ -19,15 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type Policy = {
+type Procedure = {
   id: string;
   code: string;
   title: string;
   domain: string;
-  content: string;
-  version: string;
+  stepsJson: string;
   isActive: boolean;
-  officeName: string; // coming from API join
+  officeName: string;
 };
 
 type Office = {
@@ -35,15 +34,16 @@ type Office = {
   name: string;
 };
 
-export default function AdminPoliciesPage() {
-  const [policies, setPolicies] = useState<Policy[]>([]);
+export default function AdminProceduresPage() {
+  const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [offices, setOffices] = useState<Office[]>([]);
+  const [steps, setSteps] = useState<string[]>([""]);
   const [loading, setLoading] = useState(false);
 
-  async function fetchPolicies() {
-    const res = await fetch("/api/admin/policies");
+  async function fetchProcedures() {
+    const res = await fetch("/api/admin/procedures");
     const data = await res.json();
-    setPolicies(data);
+    setProcedures(data);
   }
 
   async function fetchOffices() {
@@ -53,17 +53,27 @@ export default function AdminPoliciesPage() {
   }
 
   useEffect(() => {
-    fetchPolicies();
+    fetchProcedures();
     fetchOffices();
   }, []);
 
+  function updateStep(index: number, value: string) {
+    const updated = [...steps];
+    updated[index] = value;
+    setSteps(updated);
+  }
+
+  function addStep() {
+    setSteps([...steps, ""]);
+  }
+
   async function toggleStatus(id: string, isActive: boolean) {
-    await fetch(`/api/admin/policies/${id}/status`, {
+    await fetch(`/api/admin/procedures/${id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !isActive }),
     });
-    fetchPolicies();
+    fetchProcedures();
   }
 
   async function handleCreate(e: any) {
@@ -72,7 +82,7 @@ export default function AdminPoliciesPage() {
 
     const form = e.target;
 
-    await fetch("/api/admin/policies", {
+    await fetch("/api/admin/procedures", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -80,48 +90,34 @@ export default function AdminPoliciesPage() {
         title: form.title.value,
         domain: form.domain.value,
         owningOffice: form.owningOffice.value,
-        content: form.content.value,
-        version: form.version.value,
+        steps,
       }),
     });
 
     form.reset();
+    setSteps([""]);
     setLoading(false);
-    fetchPolicies();
+    fetchProcedures();
   }
 
   return (
     <div className="space-y-8 max-w-5xl">
       <h2 className="text-2xl font-semibold">
-        Policies & Rules Management
+        Procedures Management
       </h2>
 
-      {/* CREATE POLICY */}
+      {/* CREATE PROCEDURE */}
       <Card>
         <CardHeader>
-          <CardTitle>Create New Policy</CardTitle>
+          <CardTitle>Create Procedure</CardTitle>
         </CardHeader>
         <CardContent>
           <form
             onSubmit={handleCreate}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            className="grid gap-4"
           >
-            <Input name="code" placeholder="Policy Code" required />
-            <Input name="version" placeholder="Version" required />
+            <Input name="code" placeholder="Procedure Code" required />
             <Input name="title" placeholder="Title" required />
-
-            <Select name="owningOffice" required>
-              <SelectTrigger>
-                <SelectValue placeholder="Select owning office" />
-              </SelectTrigger>
-              <SelectContent>
-                {offices.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>
-                    {o.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
             <Select name="domain" required>
               <SelectTrigger>
@@ -136,32 +132,60 @@ export default function AdminPoliciesPage() {
               </SelectContent>
             </Select>
 
-            <Input
-              name="content"
-              placeholder="Policy content"
-              className="md:col-span-2"
-              required
-            />
+            <Select name="owningOffice" required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select owning office" />
+              </SelectTrigger>
+              <SelectContent>
+                {offices.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="space-y-2">
+              <Label>Steps</Label>
+              {steps.map((step, i) => (
+                <Input
+                  key={i}
+                  value={step}
+                  onChange={(e) =>
+                    updateStep(i, e.target.value)
+                  }
+                  placeholder={`Step ${i + 1}`}
+                  required
+                />
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addStep}
+              >
+                + Add Step
+              </Button>
+            </div>
 
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Create Policy"}
+              {loading ? "Creating..." : "Create Procedure"}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      {/* POLICIES LIST */}
+      {/* LIST */}
       <Card>
         <CardHeader>
-          <CardTitle>Existing Policies</CardTitle>
+          <CardTitle>Existing Procedures</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {policies.map((p) => (
+          {procedures.map((p) => (
             <div
               key={p.id}
               className="border p-4 rounded-md space-y-2"
             >
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between">
                 <p className="font-medium">
                   {p.code} — {p.title}
                 </p>
@@ -176,23 +200,11 @@ export default function AdminPoliciesPage() {
                 </Button>
               </div>
 
-              <p className="text-sm text-slate-600">
-                {p.content}
-              </p>
-
               <div className="flex gap-2 flex-wrap">
                 <Badge>{p.domain}</Badge>
                 <Badge variant="secondary">
-                  v{p.version}
-                </Badge>
-                <Badge variant="outline">
                   {p.officeName}
                 </Badge>
-                {!p.isActive && (
-                  <Badge variant="destructive">
-                    Inactive
-                  </Badge>
-                )}
               </div>
             </div>
           ))}

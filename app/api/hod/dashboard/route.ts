@@ -24,12 +24,10 @@ export async function GET() {
     ann,
     events,
     fb,
-    pol,
   ] = await Promise.all([
     db.select().from(announcements).where(eq(announcements.departmentId, dept)),
     db.select().from(academicEvents).where(eq(academicEvents.departmentId, dept)),
     db.select().from(feedback).where(eq(feedback.departmentId, dept)),
-    db.select().from(policies).where(eq(policies.owningOffice, dept)),
   ]);
 
   // --- PCI SECTION (your correct logic kept) ---
@@ -77,7 +75,6 @@ export async function GET() {
     announcements: ann.length,
     events: events.length,
     feedback: fb.length,
-    policies: pol.length,
     overallPCI,
     domainPCI,
   });

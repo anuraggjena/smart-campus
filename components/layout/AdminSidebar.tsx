@@ -6,27 +6,32 @@ import { Button } from "../ui/button";
 
 const links = [
   { href: "/admin/dashboard", label: "Dashboard" },
-  { href: "/admin/services", label: "Campus Services" },
+  { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/announcements", label: "Announcements" },
   { href: "/admin/policies", label: "Policies" },
+  { href: "/admin/campus-services", label: "Campus Services" },
+  { href: "/admin/procedures", label: "Procedures" },
+  { href: "/admin/hods", label: "HOD Management" },
+  { href: "/admin/offices", label: "Offices" },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
   }
 
   return (
-    <div className="w-64 bg-white border-r shadow-sm">
-      <div className="p-6 text-xl font-semibold">
+    <div className="w-64 h-screen flex flex-col border-r bg-white">
+      <div className="p-6 text-xl font-semibold border-b">
         Smart Campus
       </div>
 
-      <nav className="flex flex-col gap-1 px-4">
-        {links.map((link) => (
+      <nav className="flex-1 flex flex-col gap-1 p-4">
+        {links.map(link => (
           <Link
             key={link.href}
             href={link.href}
@@ -41,8 +46,8 @@ export function AdminSidebar() {
         ))}
       </nav>
 
-      <div className="h-16 bg-white border-b flex items-center justify-end px-6">
-        <Button variant="outline" onClick={logout}>
+      <div className="p-4 border-t">
+        <Button variant="outline" className="w-full" onClick={logout}>
           Logout
         </Button>
       </div>

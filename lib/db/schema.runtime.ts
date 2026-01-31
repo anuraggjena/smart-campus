@@ -30,6 +30,13 @@ export const departments = sqliteTable("departments", {
   name: text("name").notNull(),            // Computer Science Engineering
 });
 
+export const offices = sqliteTable("offices", {
+  id: text("id").primaryKey(),
+  code: text("code").notNull(),
+  name: text("name").notNull(),
+});
+
+
 export const sessions = sqliteTable("sessions", {
   id: text("id").primaryKey(),
   userId: text("user_id")
@@ -59,7 +66,8 @@ export const campusServices = sqliteTable("campus_services", {
       "GENERAL",
     ],
   }).notNull(),
-  owningOffice: text("owning_office").notNull(),
+  owningOffice: text("owning_office").notNull()
+  .references(() => offices.id),
   // Visibility control
   visibility: text("visibility", {
     enum: ["ALL_STUDENTS", "HOSTELLERS_ONLY"],
@@ -126,7 +134,8 @@ export const policies = sqliteTable("policies", {
       "GENERAL",
     ],
   }).notNull(),
-  owningOffice: text("owning_office").notNull(),
+  owningOffice: text("owning_office").notNull()
+  .references(() => offices.id),
   content: text("content").notNull(),
   version: text("version").notNull(),
   isActive: integer("is_active", { mode: "boolean" })
@@ -196,7 +205,8 @@ export const procedures = sqliteTable("procedures", {
   }).notNull(),
   stepsJson: text("steps_json").notNull(),
   // JSON array of steps
-  owningOffice: text("owning_office").notNull(),
+  owningOffice: text("owning_office").notNull()
+  .references(() => offices.id),
   isActive: integer("is_active", { mode: "boolean" })
     .notNull()
     .default(true),

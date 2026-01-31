@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
 import { db } from "@/lib/db/client";
-import { studentInteractions, users } from "@/lib/db/schema.runtime";
-import { eq, inArray } from "drizzle-orm";
+import {
+  studentInteractions,
+  users,
+  departments,
+} from "@/lib/db/schema.runtime";
+import { eq } from "drizzle-orm";
 import { aggregateDomainPCI } from "@/lib/analytics/pciAggregator";
 
 export async function GET(req: Request) {
@@ -11,39 +15,35 @@ export async function GET(req: Request) {
   requireRole(user, ["ADMIN"]);
 
   const { searchParams } = new URL(req.url);
-  const departments = searchParams.get("department");
+  const departmentId = searchParams.get("department");
 
-  if (!departments) {
+  if (!departmentId) {
     return NextResponse.json(
       { error: "department required" },
       { status: 400 }
     );
   }
 
-  const deptUsers = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.departmentId, departments));
-
-  const userIds = deptUsers.map(u => u.id);
-
-  if (userIds.length === 0) {
-    return NextResponse.json({
-      departments,
-      pci: 100,
-      interactions: 0,
-    });
-  }
-
   const interactions = await db
-    .select()
-    .from(studentInteractions)
-    .where(inArray(studentInteractions.userId, userIds));
+  .select({
+    intent: studentInteractions.intent,
+    aiConfidence: studentInteractions.aiConfidence,
+    followUp: studentInteractions.followUp,
+  })
+  .from(studentInteractions)
+  .innerJoin(users, eq(users.id, studentInteractions.userId))
+  .where(eq(users.departmentId, departmentId));
 
   const pci = aggregateDomainPCI(interactions);
 
+  const dept = await db
+    .select()
+    .from(departments)
+    .where(eq(departments.id, departmentId))
+    .limit(1);
+
   return NextResponse.json({
-    departments,
+    department: dept[0]?.name ?? "Unknown",
     pci,
     interactions: interactions.length,
   });
