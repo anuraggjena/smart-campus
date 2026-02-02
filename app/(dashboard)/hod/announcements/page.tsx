@@ -46,18 +46,21 @@ export default function HodAnnouncementsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl">
+
+      {/* Create Announcement */}
       <Card>
         <CardContent className="p-6 space-y-4">
-          <h2 className="text-xl font-semibold">Create Announcement</h2>
+          <h2 className="text-xl font-semibold">Create Department Announcement</h2>
 
-          <form onSubmit={submit} className="space-y-3">
+          <form onSubmit={submit} className="space-y-4">
             <Input
               placeholder="Title"
               value={form.title}
               onChange={(e) =>
                 setForm({ ...form, title: e.target.value })
               }
+              required
             />
 
             <Textarea
@@ -66,8 +69,23 @@ export default function HodAnnouncementsPage() {
               onChange={(e) =>
                 setForm({ ...form, message: e.target.value })
               }
+              required
             />
 
+            {/* Priority */}
+            <select
+              value={form.priority}
+              onChange={(e) =>
+                setForm({ ...form, priority: e.target.value })
+              }
+              className="border p-2 rounded-md w-full"
+            >
+              <option value="NORMAL">Normal</option>
+              <option value="IMPORTANT">Important</option>
+              <option value="URGENT">Urgent</option>
+            </select>
+
+            {/* Dates */}
             <div className="flex gap-3">
               <Input
                 type="datetime-local"
@@ -75,6 +93,7 @@ export default function HodAnnouncementsPage() {
                 onChange={(e) =>
                   setForm({ ...form, activeFrom: e.target.value })
                 }
+                required
               />
 
               <Input
@@ -91,18 +110,28 @@ export default function HodAnnouncementsPage() {
         </CardContent>
       </Card>
 
+      {/* Existing Announcements */}
       <div className="space-y-3">
         {data.map((a) => (
           <Card key={a.id}>
             <CardContent className="p-4">
-              <h3 className="font-semibold">{a.title}</h3>
-              <p className="text-sm text-slate-600">
+              <div className="flex justify-between">
+                <h3 className="font-semibold">{a.title}</h3>
+                <span className="text-xs px-2 py-1 bg-slate-200 rounded">
+                  {a.priority}
+                </span>
+              </div>
+              <p className="text-sm text-slate-600 mt-1">
                 {a.message}
+              </p>
+              <p className="text-xs text-slate-400 mt-2">
+                Active from {new Date(a.activeFrom).toLocaleString()}
               </p>
             </CardContent>
           </Card>
         ))}
       </div>
+
     </div>
   );
 }

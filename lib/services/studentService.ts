@@ -7,13 +7,25 @@ import {
   academicEvents,
   studentInteractions,
 } from "@/lib/db/schema.runtime";
-import { and, lte, gte, isNull, or, eq, desc } from "drizzle-orm";
+import {
+  and,
+  lte,
+  gte,
+  isNull,
+  or,
+  eq,
+  desc,
+  inArray,
+} from "drizzle-orm";
 
 export async function getStudentDashboard(user: any) {
   const now = new Date().toISOString();
 
-  // 1️⃣ Important announcements for this student
-  const importantAnnouncements = await db
+  /* ------------------------------------------------------------------ */
+  /* 1️⃣ Announcements truly relevant to THIS student                   */
+  /* ------------------------------------------------------------------ */
+
+  const allAnnouncements = await db
     .select()
     .from(announcements)
     .where(
@@ -28,7 +40,7 @@ export async function getStudentDashboard(user: any) {
     )
     .orderBy(desc(announcements.priority));
 
-  const filteredAnnouncements = importantAnnouncements.filter((a) => {
+  const importantAnnouncements = allAnnouncements.filter((a) => {
     if (a.visibility === "ALL_STUDENTS") return true;
     if (a.visibility === "HOSTELLERS_ONLY" && user.isHosteller)
       return true;
@@ -37,45 +49,62 @@ export async function getStudentDashboard(user: any) {
     return false;
   });
 
-  // 2️⃣ Upcoming department events
+  /* ------------------------------------------------------------------ */
+  /* 2️⃣ Upcoming events ONLY for this department (next 7 days)        */
+  /* ------------------------------------------------------------------ */
+
+  const nextWeek = new Date();
+  nextWeek.setDate(nextWeek.getDate() + 7);
+
   const upcomingEvents = await db
     .select()
     .from(academicEvents)
     .where(
       and(
+        eq(academicEvents.departmentId, user.departmentId),
         gte(academicEvents.startDate, now),
-        eq(academicEvents.departmentId, user.departmentId)
+        lte(academicEvents.startDate, nextWeek.toISOString())
       )
-    );
+    )
+    .orderBy(academicEvents.startDate);
 
-  // 3️⃣ What students are searching the most (procedures)
-  const interactions = await db
+  /* ------------------------------------------------------------------ */
+  /* 3️⃣ What THIS student and others are struggling with               */
+  /* ------------------------------------------------------------------ */
+
+  const recentInteractions = await db
     .select()
     .from(studentInteractions)
     .orderBy(desc(studentInteractions.createdAt))
-    .limit(200);
+    .limit(300);
 
   const intentCount: Record<string, number> = {};
 
-  interactions.forEach((i) => {
+  recentInteractions.forEach((i) => {
     intentCount[i.intent] = (intentCount[i.intent] || 0) + 1;
   });
 
-  const topIntents = Object.entries(intentCount)
+  const trendingIntents = Object.entries(intentCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, 6)
     .map(([intent]) => intent);
 
-  const suggestedProcedures = await db
-    .select()
-    .from(procedures)
-    .where(eq(procedures.isActive, true));
+  const suggestedProcedures = trendingIntents.length
+    ? await db
+        .select()
+        .from(procedures)
+        .where(
+          and(
+            eq(procedures.isActive, true),
+            inArray(procedures.code, trendingIntents)
+          )
+        )
+    : [];
 
-  const filteredProcedures = suggestedProcedures.filter((p) =>
-    topIntents.includes(p.code)
-  );
+  /* ------------------------------------------------------------------ */
+  /* 4️⃣ Contextual services based on student type                      */
+  /* ------------------------------------------------------------------ */
 
-  // 4️⃣ Contextual services
   const allServices = await db
     .select()
     .from(campusServices)
@@ -91,17 +120,34 @@ export async function getStudentDashboard(user: any) {
     return false;
   });
 
-  // 5️⃣ Policies students don’t understand (low PCI domains)
-  const confusingPolicies = await db
+  /* ------------------------------------------------------------------ */
+  /* 5️⃣ Policies from domains students ask most about                  */
+  /* ------------------------------------------------------------------ */
+
+  const confusingPolicies = trendingIntents.length
+    ? await db
+        .select()
+        .from(policies)
+        .where(eq(policies.isActive, true))
+    : [];
+
+  /* ------------------------------------------------------------------ */
+  /* 6️⃣ Student recent activity (for dashboard timeline)               */
+  /* ------------------------------------------------------------------ */
+
+  const myRecentActivity = await db
     .select()
-    .from(policies)
-    .where(eq(policies.isActive, true));
+    .from(studentInteractions)
+    .where(eq(studentInteractions.userId, user.id))
+    .orderBy(desc(studentInteractions.createdAt))
+    .limit(5);
 
   return {
-    importantAnnouncements: filteredAnnouncements.slice(0, 5),
+    importantAnnouncements: importantAnnouncements.slice(0, 5),
     upcomingEvents: upcomingEvents.slice(0, 5),
-    suggestedProcedures: filteredProcedures.slice(0, 5),
+    suggestedProcedures: suggestedProcedures.slice(0, 5),
     suggestedServices: suggestedServices.slice(0, 5),
     confusingPolicies: confusingPolicies.slice(0, 5),
+    myRecentActivity,
   };
 }

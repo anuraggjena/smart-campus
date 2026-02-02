@@ -8,103 +8,134 @@ type AIResponse = {
   answer: string;
 };
 
+type Message = {
+  role: "user" | "ai";
+  text: string;
+};
+
 export default function StudentAssistantPage() {
   const [query, setQuery] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
   const [response, setResponse] = useState<AIResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function askAI() {
-    if (!query) return;
+    if (!query.trim()) return;
 
+    const userMessage: Message = { role: "user", text: query };
+    setMessages((prev) => [...prev, userMessage]);
+    setQuery("");
     setLoading(true);
-    setResponse(null);
 
     const res = await fetch("/api/student/assistant/query", {
       method: "POST",
-      body: JSON.stringify({ query }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: userMessage.text }),
     });
 
     const data = await res.json();
+
+    const aiMessage: Message = {
+      role: "ai",
+      text: data.answer,
+    };
+
+    setMessages((prev) => [...prev, aiMessage]);
     setResponse(data);
     setLoading(false);
   }
 
   return (
-    <div className="grid md:grid-cols-3 gap-6 h-[75vh]">
-      {/* Chat section */}
-      <div className="md:col-span-2 flex flex-col border rounded-xl shadow-sm bg-white">
-        <div className="p-4 border-b">
-          <h1 className="text-lg font-semibold">AI Campus Assistant</h1>
-          <p className="text-xs text-slate-500">
-            Ask anything about policies, procedures, exams, fees, hostel
+    <div className="grid md:grid-cols-3 gap-6 h-[78vh]">
+      {/* Chat Section */}
+      <div className="md:col-span-2 flex flex-col border rounded-2xl shadow-sm bg-white overflow-hidden">
+        {/* Header */}
+        <div className="p-5 border-b bg-linear-to-r from-indigo-600 to-slate-800 text-white">
+          <h1 className="text-lg font-semibold">Campus AI Assistant</h1>
+          <p className="text-xs opacity-80">
+            Ask about policies, procedures, exams, fees, hostel, academics
           </p>
         </div>
 
-        <div className="flex-1 p-4 overflow-auto space-y-4">
-          {response && (
-            <div className="bg-slate-50 p-4 rounded-lg border">
-              <p className="text-sm whitespace-pre-line">
-                {response.answer}
-              </p>
+        {/* Chat Window */}
+        <div className="flex-1 p-6 overflow-auto space-y-4 bg-slate-50">
+          {messages.length === 0 && (
+            <div className="text-sm text-slate-400">
+              Try asking: “How do I apply for leave?” or “How to pay fees?”
             </div>
           )}
 
-          {!response && !loading && (
-            <div className="text-sm text-slate-400">
-              Start by asking a question…
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              className={`max-w-[75%] p-4 rounded-xl text-sm shadow ${
+                m.role === "user"
+                  ? "ml-auto bg-slate-900 text-white"
+                  : "bg-white border"
+              }`}
+            >
+              {m.text}
             </div>
-          )}
+          ))}
 
           {loading && (
             <div className="text-sm text-slate-500">
-              Thinking…
+              AI is thinking…
             </div>
           )}
         </div>
 
-        <div className="p-4 border-t flex gap-3">
+        {/* Input */}
+        <div className="p-4 border-t flex gap-3 bg-white">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g. How do I apply for leave?"
-            className="flex-1 border rounded-md px-3 py-2 text-sm"
+            placeholder="Type your question here..."
+            className="flex-1 border rounded-lg px-4 py-2 text-sm"
+            onKeyDown={(e) => e.key === "Enter" && askAI()}
           />
           <button
             onClick={askAI}
-            className="bg-slate-900 text-white px-4 rounded-md"
+            className="bg-indigo-600 text-white px-5 rounded-lg text-sm"
           >
             Ask
           </button>
         </div>
       </div>
 
-      {/* Intelligence panel */}
-      <div className="border rounded-xl shadow-sm bg-white p-4 space-y-4">
+      {/* Intelligence Panel */}
+      <div className="border rounded-2xl shadow-sm bg-white p-6 space-y-6">
         <h2 className="text-sm font-semibold text-slate-600">
-          AI Analysis
+          AI Insights
         </h2>
 
         {response ? (
           <>
             <div>
-              <div className="text-xs text-slate-500">Detected Intent</div>
-              <div className="font-medium">{response.intent}</div>
+              <div className="text-xs text-slate-500">
+                Detected Intent
+              </div>
+              <div className="font-semibold text-lg">
+                {response.intent}
+              </div>
             </div>
 
             <div>
-              <div className="text-xs text-slate-500">Confidence</div>
-              <div className="font-medium">
+              <div className="text-xs text-slate-500">
+                Confidence Level
+              </div>
+              <div className="font-semibold text-lg">
                 {response.confidence}%
               </div>
             </div>
 
             <div className="text-xs text-slate-500">
-              This interaction is recorded for campus analytics and PCI.
+              This interaction contributes to campus policy clarity analytics.
             </div>
           </>
         ) : (
           <div className="text-xs text-slate-400">
-            AI insights will appear here after you ask a question.
+            Ask a question to see AI analysis here.
           </div>
         )}
       </div>

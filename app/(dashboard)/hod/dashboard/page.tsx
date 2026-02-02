@@ -2,6 +2,15 @@
 
 import { useEffect, useState } from "react";
 
+function StatCard({ title, value }: any) {
+  return (
+    <div className="bg-white p-6 rounded-xl shadow text-center">
+      <div className="text-slate-500 text-sm">{title}</div>
+      <div className="text-3xl font-bold mt-2">{value}</div>
+    </div>
+  );
+}
+
 export default function HodDashboardPage() {
   const [data, setData] = useState<any>(null);
 
@@ -14,36 +23,30 @@ export default function HodDashboardPage() {
   if (!data) return <div className="p-6">Loading dashboard...</div>;
 
   return (
-    <div className="space-y-8">
-      <div className="bg-white p-6 rounded-xl shadow">
+    <div className="space-y-8 max-w-6xl">
+
+      {/* Header */}
+      <div className="bg-linear-to-r from-slate-900 to-slate-700 text-white p-6 rounded-xl shadow">
         <h2 className="text-2xl font-semibold">Department Overview</h2>
-        <p className="text-gray-600">
-          Insights and activity from your department
+        <p className="text-sm opacity-80">
+          Activity and insights from your department
         </p>
       </div>
 
-      <div className="grid grid-cols-4 gap-6">
-        <Card title="Announcements Created" value={data.announcements} />
-        <Card title="Academic Events" value={data.events} />
-        <Card title="Feedback Received" value={data.feedback} />
-        <Card title="Active Policies" value={data.policies} />
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <StatCard title="Dept Announcements" value={data.announcements} />
+        <StatCard title="Academic Events" value={data.events} />
+        <StatCard title="Feedback Received" value={data.feedback} />
+        <StatCard title="Students in Department" value={data.students} />
       </div>
 
+      {/* PCI Insight */}
       <div className="bg-white p-6 rounded-xl shadow">
         <h3 className="text-lg font-semibold">Department PCI Insight</h3>
-        <p className="text-gray-700 mt-2">
-          {data.pciInsight}
-        </p>
+        <p className="text-slate-700 mt-2">{data.pciInsight}</p>
       </div>
-    </div>
-  );
-}
 
-function Card({ title, value }: any) {
-  return (
-    <div className="bg-white p-6 rounded-xl shadow text-center">
-      <div className="text-gray-500">{title}</div>
-      <div className="text-3xl font-bold mt-2">{value}</div>
     </div>
   );
 }
