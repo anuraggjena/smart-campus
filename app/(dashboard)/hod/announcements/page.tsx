@@ -5,9 +5,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+
+type Announcement = {
+  id: string;
+  title: string;
+  message: string;
+  priority: string;
+  activeFrom: string;
+  activeUntil: string | null;
+  isActive: boolean;
+};
 
 export default function HodAnnouncementsPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Announcement[]>([]);
+  const [editing, setEditing] = useState<Announcement | null>(null);
+
   const [form, setForm] = useState({
     title: "",
     message: "",
@@ -26,14 +39,7 @@ export default function HodAnnouncementsPage() {
     load();
   }, []);
 
-  async function submit(e: any) {
-    e.preventDefault();
-
-    await fetch("/api/hod/announcements", {
-      method: "POST",
-      body: JSON.stringify(form),
-    });
-
+  function resetForm() {
     setForm({
       title: "",
       message: "",
@@ -41,17 +47,67 @@ export default function HodAnnouncementsPage() {
       activeFrom: "",
       activeUntil: "",
     });
+    setEditing(null);
+  }
+
+  async function submit(e: any) {
+    e.preventDefault();
+
+    if (editing) {
+      await fetch(`/api/hod/announcements/${editing.id}`, {
+        method: "PUT",
+        body: JSON.stringify(form),
+      });
+    } else {
+      await fetch("/api/hod/announcements", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+    }
+
+    resetForm();
+    load();
+  }
+
+  async function toggleStatus(a: Announcement) {
+    await fetch(`/api/hod/announcements/${a.id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ isActive: !a.isActive }),
+    });
 
     load();
   }
 
-  return (
-    <div className="space-y-6 max-w-4xl">
+  function startEdit(a: Announcement) {
+    setEditing(a);
+    setForm({
+      title: a.title,
+      message: a.message,
+      priority: a.priority,
+      activeFrom: a.activeFrom,
+      activeUntil: a.activeUntil ?? "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
-      {/* Create Announcement */}
+  function getStatus(a: Announcement) {
+    const now = new Date();
+    const until = a.activeUntil ? new Date(a.activeUntil) : null;
+
+    if (!a.isActive) return "Inactive";
+    if (until && until < now) return "Expired";
+    return "Active";
+  }
+
+  return (
+    <div className="space-y-8 max-w-5xl">
+
+      {/* CREATE / EDIT */}
       <Card>
         <CardContent className="p-6 space-y-4">
-          <h2 className="text-xl font-semibold">Create Department Announcement</h2>
+          <h2 className="text-xl font-semibold">
+            {editing ? "Edit Announcement" : "Create Department Announcement"}
+          </h2>
 
           <form onSubmit={submit} className="space-y-4">
             <Input
@@ -72,7 +128,6 @@ export default function HodAnnouncementsPage() {
               required
             />
 
-            {/* Priority */}
             <select
               value={form.priority}
               onChange={(e) =>
@@ -85,7 +140,6 @@ export default function HodAnnouncementsPage() {
               <option value="URGENT">Urgent</option>
             </select>
 
-            {/* Dates */}
             <div className="flex gap-3">
               <Input
                 type="datetime-local"
@@ -95,7 +149,6 @@ export default function HodAnnouncementsPage() {
                 }
                 required
               />
-
               <Input
                 type="datetime-local"
                 value={form.activeUntil}
@@ -105,28 +158,58 @@ export default function HodAnnouncementsPage() {
               />
             </div>
 
-            <Button type="submit">Post Announcement</Button>
+            <div className="flex gap-3">
+              <Button type="submit">
+                {editing ? "Update" : "Post Announcement"}
+              </Button>
+
+              {editing && (
+                <Button variant="outline" onClick={resetForm}>
+                  Cancel Edit
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
 
-      {/* Existing Announcements */}
-      <div className="space-y-3">
+      {/* ANNOUNCEMENT MANAGER */}
+      <div className="space-y-4">
         {data.map((a) => (
           <Card key={a.id}>
-            <CardContent className="p-4">
-              <div className="flex justify-between">
+            <CardContent className="p-5 space-y-2">
+              <div className="flex justify-between items-center">
                 <h3 className="font-semibold">{a.title}</h3>
-                <span className="text-xs px-2 py-1 bg-slate-200 rounded">
-                  {a.priority}
-                </span>
+
+                <div className="flex gap-2 items-center">
+                  <Badge>{a.priority}</Badge>
+                  <Badge variant="secondary">{getStatus(a)}</Badge>
+                </div>
               </div>
-              <p className="text-sm text-slate-600 mt-1">
-                {a.message}
-              </p>
-              <p className="text-xs text-slate-400 mt-2">
-                Active from {new Date(a.activeFrom).toLocaleString()}
-              </p>
+
+              <p className="text-sm text-slate-600">{a.message}</p>
+
+              <div className="text-xs text-slate-400">
+                From {new Date(a.activeFrom).toLocaleString()}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => startEdit(a)}
+                >
+                  Edit
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => toggleStatus(a)}
+                >
+                  {a.isActive ? "Deactivate" : "Activate"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}

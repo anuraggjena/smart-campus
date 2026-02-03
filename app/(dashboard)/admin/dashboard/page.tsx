@@ -44,7 +44,7 @@ export default function AdminDashboard() {
       {/* Overall PCI */}
       <Card>
         <CardHeader>
-          <CardTitle>Campus Policy Clarity Index</CardTitle>
+          <CardTitle>Campus Process Clarity Index</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-5xl font-bold">{overallPCI}</p>

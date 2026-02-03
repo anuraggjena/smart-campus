@@ -33,10 +33,10 @@ export async function generateAdminInsight(input: {
 University policy analytics summary:
 
 Domain: ${input.domain}
-Policy Clarity Index: ${input.pci}
+Process Clarity Index: ${input.pci}
 Total related student queries: ${input.totalQueries}
 
-Explain what this indicates about policy clarity and what administrators should consider improving.
+Explain what this indicates about process clarity and what administrators should consider improving.
 Limit to 3 sentences.
 Tone: professional and advisory.
 `;
