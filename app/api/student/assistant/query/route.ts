@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client";
 import { studentInteractions } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
+import { and, eq, desc } from "drizzle-orm";
 
 export async function POST(req: Request) {
   const student = await getSessionUser();
@@ -12,42 +13,48 @@ export async function POST(req: Request) {
 
   const { query } = await req.json();
 
-  if (!query) {
-    return NextResponse.json(
-      { error: "Query is required" },
-      { status: 400 }
-    );
-  }
+  const { intent, confidence } = await classifyIntent(query);
 
-  // 1. AI intent classification
-  const { intent, confidence } =
-    await classifyIntent(query);
+  const resolution = await resolveAnswer(intent, query);
 
-  // 2. Institutional resolution
-  const resolution = await resolveAnswer(
-    intent,
-    student.department
-  );
+  // 🔁 Detect follow-up (same intent recently)
+  const last = await db
+    .select()
+    .from(studentInteractions)
+    .where(
+      and(
+        eq(studentInteractions.userId, student.id),
+        eq(studentInteractions.intent, intent)
+      )
+    )
+    .orderBy(desc(studentInteractions.createdAt))
+    .limit(1);
 
-  // 3. Persist interaction for analytics (PCI, trends)
+  const followUp = last.length > 0;
+
+  // ✅ Proper logging
   await db.insert(studentInteractions).values({
     userId: student.id,
+    departmentId: student.departmentId,
     role: "STUDENT",
     intent,
+    policyCode: resolution.matchedPolicyCode,
     aiConfidence: confidence,
-    followUp: false,
+    followUp,
   });
 
-  // 4. Convert structured resolution into readable answer
   const policyText = resolution.policies
-    .map((p: any) => `• ${p.title}`)
+    .map(p => `• ${p.title}`)
     .join("\n");
 
   const procedureText = resolution.procedures
-    .map((p: any) => `• ${p.title}`)
+    .map(p => `• ${p.title}`)
     .join("\n");
 
-  const finalAnswer = `
+  return NextResponse.json({
+    intent,
+    confidence,
+    answer: `
 Based on institutional records:
 
 Relevant Policies:
@@ -55,12 +62,6 @@ ${policyText || "No specific policy found."}
 
 Relevant Procedures:
 ${procedureText || "No specific procedure found."}
-`;
-
-  // 5. Return UI-friendly response
-  return NextResponse.json({
-    intent,
-    confidence,
-    answer: finalAnswer.trim(),
+    `.trim(),
   });
 }

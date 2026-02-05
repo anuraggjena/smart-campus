@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { studentInteractions, policies } from "@/lib/db/schema.runtime";
+import { studentInteractions } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
 import { aggregateDomainPCI } from "@/lib/analytics/pciAggregator";
@@ -10,11 +10,10 @@ export async function GET() {
   const student = await getSessionUser();
   requireRole(student, ["STUDENT"]);
 
-  // Fetch interactions by this student's department
   const interactions = await db
     .select()
     .from(studentInteractions)
-    .where(eq(studentInteractions.role, "STUDENT"));
+    .where(eq(studentInteractions.departmentId, student.departmentId));
 
   const grouped: Record<string, any[]> = {};
 
@@ -23,10 +22,7 @@ export async function GET() {
     grouped[i.intent].push(i);
   });
 
-  const cues: {
-    type: string;
-    message: string;
-  }[] = [];
+  const cues: { type: string; message: string }[] = [];
 
   Object.entries(grouped).forEach(([domain, items]) => {
     const pci = aggregateDomainPCI(items);
@@ -34,19 +30,19 @@ export async function GET() {
     if (pci < 50) {
       cues.push({
         type: "LOW_CLARITY",
-        message: `Rules related to ${domain} are often unclear. Please read carefully.`,
+        message: `${domain} rules are frequently unclear to students.`,
       });
     } else if (pci < 80) {
       cues.push({
         type: "MODERATE_CLARITY",
-        message: `Some students seek clarification on ${domain} policies.`,
+        message: `Students often ask clarifications about ${domain}.`,
       });
     }
 
     if (items.length > 10) {
       cues.push({
         type: "COMMON_QUERY",
-        message: `${domain} is a commonly asked topic among students.`,
+        message: `${domain} is a common concern among students.`,
       });
     }
   });

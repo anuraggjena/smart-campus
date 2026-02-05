@@ -157,6 +157,7 @@ export const studentInteractions = sqliteTable("student_interactions", {
   intent: text("intent").notNull(), // FEES, EXAMS, HOSTEL, etc.
   policyCode: text("policy_code"), 
   // nullable: not every query maps to a policy
+  procedureCode: text("procedure_code"),
   aiConfidence: integer("ai_confidence"), 
   // 0–100
   followUp: integer("follow_up", { mode: "boolean" })
