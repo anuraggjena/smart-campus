@@ -1,20 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { Button } from "../ui/button";
 
 const links = [
   { href: "/hod/dashboard", label: "Dashboard" },
   { href: "/hod/announcements", label: "Announcements" },
-  { href: "/hod/events", label: "Academic Events" },
+  { href: "/hod/academics", label: "Academic Events" },
   { href: "/hod/feedback", label: "Feedback" },
 ];
 
 export function HodSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  
+    async function logout() {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+    }
 
   return (
-    <div className="w-64 bg-white border-r shadow-sm">
+    <div className="w-64 bg-white border-r shadow-sm relative">
       <div className="p-6 text-xl font-semibold">
         Smart Campus
       </div>
@@ -34,6 +41,13 @@ export function HodSidebar() {
           </Link>
         ))}
       </nav>
+
+      {/* Absolute bottom logout */}
+      <div className="absolute bottom-0 left-0 w-full p-4 border-t bg-white">
+        <Button variant="outline" className="w-full" onClick={logout}>
+          Logout
+        </Button>
+      </div>
     </div>
   );
 }
