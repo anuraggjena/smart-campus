@@ -92,6 +92,13 @@ function Section({ title, items }: any) {
 
 export default async function StudentAnnouncementsPage() {
   const data = await getAnnouncements();
+
+  data.sort(
+    (a: any, b: any) =>
+      new Date(b.activeFrom).getTime() -
+      new Date(a.activeFrom).getTime()
+  );
+
   const { today, week, older } = groupAnnouncements(data);
 
   const urgent = data.filter((a: any) => a.priority === "URGENT");

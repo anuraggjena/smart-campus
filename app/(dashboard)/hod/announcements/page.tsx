@@ -51,27 +51,38 @@ export default function HodAnnouncementsPage() {
   }
 
   async function submit(e: any) {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (editing) {
-      await fetch(`/api/hod/announcements/${editing.id}`, {
-        method: "PUT",
-        body: JSON.stringify(form),
-      });
-    } else {
-      await fetch("/api/hod/announcements", {
-        method: "POST",
-        body: JSON.stringify(form),
-      });
-    }
+  const payload = {
+    ...form,
+    activeFrom: new Date(form.activeFrom).toISOString(),
+    activeUntil: form.activeUntil
+      ? new Date(form.activeUntil).toISOString()
+      : null,
+  };
 
-    resetForm();
-    load();
+  if (editing) {
+    await fetch(`/api/hod/announcements/${editing.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } else {
+    await fetch("/api/hod/announcements", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
   }
+
+  resetForm();
+  load();
+}
 
   async function toggleStatus(a: Announcement) {
     await fetch(`/api/hod/announcements/${a.id}/status`, {
       method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !a.isActive }),
     });
 
@@ -204,10 +215,15 @@ export default function HodAnnouncementsPage() {
 
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => toggleStatus(a)}
+                  variant="destructive"
+                  onClick={async () => {
+                    await fetch(`/api/hod/announcements/${a.id}`, {
+                      method: "DELETE",
+                    });
+                    load();
+                  }}
                 >
-                  {a.isActive ? "Deactivate" : "Activate"}
+                  Delete
                 </Button>
               </div>
             </CardContent>

@@ -7,133 +7,109 @@ import {
   academicEvents,
   studentInteractions,
 } from "@/lib/db/schema.runtime";
-import {
-  and,
-  lte,
-  gte,
-  isNull,
-  or,
-  eq,
-  desc,
-  inArray,
-} from "drizzle-orm";
+import { and, lte, gte, isNull, or, eq, desc, asc } from "drizzle-orm";
 
 export async function getStudentDashboard(user: any) {
   const now = new Date().toISOString();
 
-  /* ------------------------------------------------------------------ */
-  /* 1️⃣ Announcements truly relevant to THIS student                   */
-  /* ------------------------------------------------------------------ */
-
+  // 1️⃣ Important announcements
   const allAnnouncements = await db
-    .select()
-    .from(announcements)
-    .where(
-      and(
-        eq(announcements.isActive, true),
-        lte(announcements.activeFrom, now),
-        or(
-          isNull(announcements.activeUntil),
-          gte(announcements.activeUntil, now)
-        )
+  .select()
+  .from(announcements)
+  .where(
+    and(
+      eq(announcements.isActive, true),
+      lte(announcements.activeFrom, now),
+      or(
+        isNull(announcements.activeUntil),
+        gte(announcements.activeUntil, now)
       )
     )
-    .orderBy(desc(announcements.priority));
+  );
 
-  const importantAnnouncements = allAnnouncements.filter((a) => {
-    if (a.visibility === "ALL_STUDENTS") return true;
-    if (a.visibility === "HOSTELLERS_ONLY" && user.isHosteller)
-      return true;
-    if (a.departmentId && a.departmentId === user.departmentId)
-      return true;
+  allAnnouncements.sort(
+    (a, b) =>
+      new Date(b.activeFrom).getTime() -
+      new Date(a.activeFrom).getTime()
+  );
+
+  const filteredAnnouncements = allAnnouncements.filter((a) => {
+  // role targeting
+  if (!(a.audience === "ALL" || a.audience === "STUDENTS"))
     return false;
-  });
 
-  /* ------------------------------------------------------------------ */
-  /* 2️⃣ Upcoming events ONLY for this department (next 7 days)        */
-  /* ------------------------------------------------------------------ */
+  // department targeting
+  if (a.departmentId !== user.departmentId)
+    return false;
 
-  const nextWeek = new Date();
-  nextWeek.setDate(nextWeek.getDate() + 7);
+  // hostel targeting
+  if (a.visibility === "HOSTELLERS_ONLY" && !user.isHosteller)
+    return false;
 
+  return true;
+});
+
+  // 2️⃣ Upcoming events
   const upcomingEvents = await db
     .select()
     .from(academicEvents)
     .where(
       and(
-        eq(academicEvents.departmentId, user.departmentId),
         gte(academicEvents.startDate, now),
-        lte(academicEvents.startDate, nextWeek.toISOString())
+        eq(academicEvents.departmentId, user.departmentId)
       )
-    )
-    .orderBy(academicEvents.startDate);
+    );
 
-  /* ------------------------------------------------------------------ */
-  /* 3️⃣ What THIS student and others are struggling with               */
-  /* ------------------------------------------------------------------ */
-
-  const recentInteractions = await db
+  // 3️⃣ Find top domains students ask about
+  const interactions = await db
     .select()
     .from(studentInteractions)
     .orderBy(desc(studentInteractions.createdAt))
     .limit(300);
 
-  const intentCount: Record<string, number> = {};
+  const domainCount: Record<string, number> = {};
 
-  recentInteractions.forEach((i) => {
-    intentCount[i.intent] = (intentCount[i.intent] || 0) + 1;
+  interactions.forEach((i) => {
+    domainCount[i.intent] = (domainCount[i.intent] || 0) + 1;
   });
 
-  const trendingIntents = Object.entries(intentCount)
+  const topDomains = Object.entries(domainCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([intent]) => intent);
+    .slice(0, 3)
+    .map(([domain]) => domain);
 
-  const suggestedProcedures = trendingIntents.length
-    ? await db
-        .select()
-        .from(procedures)
-        .where(
-          and(
-            eq(procedures.isActive, true),
-            inArray(procedures.code, trendingIntents)
-          )
-        )
-    : [];
+  // ✅ Match procedures by DOMAIN (not code)
+  const allProcedures = await db
+    .select()
+    .from(procedures)
+    .where(eq(procedures.isActive, true));
 
-  /* ------------------------------------------------------------------ */
-  /* 4️⃣ Contextual services based on student type                      */
-  /* ------------------------------------------------------------------ */
+  const suggestedProcedures = allProcedures.filter((p) =>
+    topDomains.includes(p.domain)
+  );
 
-  const allServices = await db
+  // 4️⃣ Contextual services
+  const services = await db
     .select()
     .from(campusServices)
     .where(eq(campusServices.isActive, true));
 
-  const suggestedServices = allServices.filter((s) => {
+  const suggestedServices = services.filter((s) => {
     if (s.visibility === "ALL_STUDENTS") return true;
-    if (
-      s.visibility === "HOSTELLERS_ONLY" &&
-      user.isHosteller
-    )
+    if (s.visibility === "HOSTELLERS_ONLY" && user.isHosteller)
       return true;
     return false;
   });
 
-  /* ------------------------------------------------------------------ */
-  /* 5️⃣ Policies from domains students ask most about                  */
-  /* ------------------------------------------------------------------ */
+  // 5️⃣ Policies from frequently asked domains
+  const allPolicies = await db
+    .select()
+    .from(policies)
+    .where(eq(policies.isActive, true));
 
-  const confusingPolicies = trendingIntents.length
-    ? await db
-        .select()
-        .from(policies)
-        .where(eq(policies.isActive, true))
-    : [];
-
-  /* ------------------------------------------------------------------ */
-  /* 6️⃣ Student recent activity (for dashboard timeline)               */
-  /* ------------------------------------------------------------------ */
+  const confusingPolicies = allPolicies.filter((p) =>
+    topDomains.includes(p.domain)
+  );
 
   const myRecentActivity = await db
     .select()
@@ -143,7 +119,7 @@ export async function getStudentDashboard(user: any) {
     .limit(5);
 
   return {
-    importantAnnouncements: importantAnnouncements.slice(0, 5),
+    importantAnnouncements: filteredAnnouncements.slice(0, 5),
     upcomingEvents: upcomingEvents.slice(0, 5),
     suggestedProcedures: suggestedProcedures.slice(0, 5),
     suggestedServices: suggestedServices.slice(0, 5),

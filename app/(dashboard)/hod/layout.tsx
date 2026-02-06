@@ -10,12 +10,9 @@ export default function HodLayout({
   return (
     <div className="flex h-screen bg-slate-100">
       <HodSidebar />
-      <div className="flex-1 flex flex-col">
-        <Topbar />
         <main className="flex-1 overflow-y-auto p-8">
           {children}
         </main>
-      </div>
     </div>
   );
 }

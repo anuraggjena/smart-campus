@@ -15,10 +15,10 @@ export function HodSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   
-    async function logout() {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
-    }
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  }
 
   return (
     <div className="w-64 bg-white border-r shadow-sm relative">

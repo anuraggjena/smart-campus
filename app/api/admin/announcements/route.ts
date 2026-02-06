@@ -3,7 +3,7 @@ import { db } from "@/lib/db/client";
 import { announcements, departments } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export async function POST(req: Request) {
   const admin = await getSessionUser();
@@ -66,7 +66,7 @@ export async function GET() {
   const list = await db
     .select()
     .from(announcements)
-    .orderBy(announcements.createdAt);
+    .orderBy(desc(announcements.createdAt));
 
   return NextResponse.json(list);
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
 import { feedback, studentInteractions } from "@/lib/db/schema.runtime";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
 import { aggregateDomainPCI } from "@/lib/analytics/pciAggregator";
@@ -16,7 +16,8 @@ export async function GET() {
   const deptFeedback = await db
     .select()
     .from(feedback)
-    .where(eq(feedback.departmentId, dept));
+    .where(eq(feedback.departmentId, dept))
+    .orderBy(desc(feedback.createdAt));
 
   // All student interactions for this department
   const interactions = await db

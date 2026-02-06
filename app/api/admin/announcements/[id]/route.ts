@@ -39,3 +39,15 @@ export async function PUT(
     message: "Announcement updated",
   });
 }
+
+export async function DELETE(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+
+  await db.delete(announcements)
+    .where(eq(announcements.id, id));
+
+  return NextResponse.json({ success: true });
+}

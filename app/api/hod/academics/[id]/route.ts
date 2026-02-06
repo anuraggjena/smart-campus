@@ -3,14 +3,16 @@ import { db } from "@/lib/db/client";
 import { academicEvents } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   const hod = await getSessionUser();
   requireRole(hod, ["HOD"]);
+
+  const { id } = await context.params; // ✅ important
 
   const body = await req.json();
 
@@ -21,11 +23,11 @@ export async function PUT(
       description: body.description,
       type: body.type,
       startDate: body.startDate,
-      endDate: body.endDate ?? null,
+      endDate: body.endDate,
     })
     .where(
       and(
-        eq(academicEvents.id, params.id),
+        eq(academicEvents.id, id),
         eq(academicEvents.departmentId, hod.departmentId)
       )
     );
@@ -34,17 +36,19 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _: Request,
-  { params }: { params: { id: string } }
+  req: Request,
+  context: { params: Promise<{ id: string }> }
 ) {
   const hod = await getSessionUser();
   requireRole(hod, ["HOD"]);
+
+  const { id } = await context.params; // ✅ important
 
   await db
     .delete(academicEvents)
     .where(
       and(
-        eq(academicEvents.id, params.id),
+        eq(academicEvents.id, id),
         eq(academicEvents.departmentId, hod.departmentId)
       )
     );

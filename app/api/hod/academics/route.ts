@@ -3,7 +3,7 @@ import { db } from "@/lib/db/client";
 import { academicEvents } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export async function POST(req: Request) {
   const hod = await getSessionUser();
@@ -48,7 +48,7 @@ export async function GET() {
     .select()
     .from(academicEvents)
     .where(eq(academicEvents.departmentId, hod.departmentId))
-    .orderBy(academicEvents.startDate);
+    .orderBy(desc(academicEvents.startDate));
 
   return NextResponse.json(list);
 }
