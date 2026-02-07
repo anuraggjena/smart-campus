@@ -12,9 +12,10 @@ const links = [
   { href: "/student/announcements", label: "Announcements" },
   { href: "/student/feedback", label: "Feedback" },
   { href: "/student/policies", label: "Policies" },
+  { href: "/student/events", label: "Academic Events" },
 ];
 
-export function Sidebar() {
+export function StudentSidebar() {
   const pathname = usePathname();
   const router = useRouter();
 

@@ -52,18 +52,31 @@ export default function AdminPoliciesPage() {
     setOffices(data);
   }
 
+  async function load() {
+    const a = await fetch("/api/admin/policies").then(r => r.json());
+    const d = await fetch("/api/offices").then(r => r.json());
+    setPolicies(a);
+    setOffices(d);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
   useEffect(() => {
     fetchPolicies();
     fetchOffices();
   }, []);
 
-  async function toggleStatus(id: string, isActive: boolean) {
-    await fetch(`/api/admin/policies/${id}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !isActive }),
+  async function deletePolicy(id: string) {
+    const ok = confirm("Delete this policy?");
+    if (!ok) return;
+
+    await fetch(`/api/admin/policies/${id}`, {
+      method: "DELETE",
     });
-    fetchPolicies();
+
+    load();
   }
 
   async function handleCreate(e: any) {
@@ -167,12 +180,10 @@ export default function AdminPoliciesPage() {
                 </p>
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    toggleStatus(p.id, p.isActive)
-                  }
+                  variant="destructive"
+                  onClick={() => deletePolicy(p.id)}
                 >
-                  {p.isActive ? "Deactivate" : "Activate"}
+                  Delete
                 </Button>
               </div>
 

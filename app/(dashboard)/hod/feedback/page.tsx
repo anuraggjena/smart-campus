@@ -1,42 +1,57 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 type Feedback = {
   id: string;
   message: string;
+  sentiment: string;
+  priority: string;
+  studentName: string;
   createdAt: string;
 };
 
 export default function HodFeedbackPage() {
   const [feedback, setFeedback] = useState<Feedback[]>([]);
-  const [pci, setPci] = useState<number>(100);
+  const [filter, setFilter] = useState<string>("ALL");
+
 
   useEffect(() => {
     fetch("/api/hod/feedback")
       .then((res) => res.json())
       .then((data) => {
         setFeedback(data.feedback);
-        setPci(data.pci);
       });
   }, []);
 
+  const filtered = useMemo(() => {
+      return feedback
+        .filter((fb) =>
+          filter === "ALL" ? true : fb.priority === filter
+        );
+    }, [feedback, filter])
+
   return (
     <div className="space-y-6">
-      {/* PCI Card */}
-      <Card className="bg-linear-to-r from-slate-900 to-slate-700 text-white shadow-lg">
-        <CardHeader>
-          <CardTitle>Department Process Confidence Index (PCI)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-5xl font-bold">{pci}%</div>
-          <p className="text-sm mt-2 opacity-80">
-            Indicates how smoothly students are navigating institutional processes.
-          </p>
-        </CardContent>
-      </Card>
-
+      <div className="flex gap-3 flex-wrap">
+          {["ALL", "HIGH", "MEDIUM", "LOW"].map(
+            (fb) => (
+              <button
+                key={fb}
+                onClick={() => setFilter(fb)}
+                className={`px-4 py-2 rounded-full border text-sm ${
+                  filter === fb
+                    ? "bg-slate-900 text-white"
+                    : "bg-white"
+                }`}
+              >
+                {fb}
+              </button>
+            )
+          )}
+        </div>
       {/* Feedback List */}
       <Card>
         <CardHeader>
@@ -47,17 +62,28 @@ export default function HodFeedbackPage() {
             <p className="text-slate-500">No feedback submitted yet.</p>
           )}
 
-          {feedback.map((fb) => (
-            <div
-              key={fb.id}
-              className="border rounded-lg p-4 shadow-sm bg-slate-50"
-            >
-              <p className="text-sm text-slate-700">{fb.message}</p>
-              <p className="text-xs text-slate-400 mt-2">
-                {new Date(fb.createdAt).toLocaleString()}
-              </p>
-            </div>
-          ))}
+          {filtered.map((fb) => (
+              <div
+                key={fb.id}
+                className="border rounded-lg p-4 bg-slate-50 space-y-2"
+              >
+                <div className="flex gap-2 flex-wrap">
+                  <Badge>{fb.studentName}</Badge>
+                  <Badge>{fb.sentiment}</Badge>
+                  <Badge variant="outline">
+                    {fb.priority}
+                  </Badge>
+                </div>
+
+                <p className="text-sm text-slate-700">
+                  {fb.message}
+                </p>
+
+                <p className="text-xs text-slate-400">
+                  {new Date(fb.createdAt).toLocaleString()}
+                </p>
+              </div>
+            ))}
         </CardContent>
       </Card>
     </div>

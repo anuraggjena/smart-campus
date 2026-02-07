@@ -1,32 +1,31 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db/client";
-import { feedback, departments } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
-import { eq } from "drizzle-orm";
+import { db } from "@/lib/db/client";
+import { feedback, users, departments } from "@/lib/db/schema.runtime";
+import { desc, eq } from "drizzle-orm";
 
 export async function GET() {
   const admin = await getSessionUser();
   requireRole(admin, ["ADMIN"]);
 
-  const list = await db
+  const allFeedbacks = await db
     .select({
       id: feedback.id,
       message: feedback.message,
-      domain: feedback.domain,
       sentiment: feedback.sentiment,
       priority: feedback.priority,
-      status: feedback.status,
       createdAt: feedback.createdAt,
-      departmentName: departments.name,
-      departmentCode: departments.code,
+      studentName: users.name,
+      department: departments.name,
     })
     .from(feedback)
-    .leftJoin(
+    .innerJoin(users, eq(users.id, feedback.userId))
+    .innerJoin(
       departments,
-      eq(feedback.departmentId, departments.id)
+      eq(departments.id, users.departmentId)
     )
-    .orderBy(feedback.createdAt);
+    .orderBy(desc(feedback.createdAt));
 
-  return NextResponse.json(list);
+  return NextResponse.json(allFeedbacks);
 }

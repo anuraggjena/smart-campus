@@ -55,3 +55,15 @@ export async function PUT(
     message: "Procedure updated successfully",
   });
 }
+
+export async function DELETE(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+
+  await db.delete(procedures)
+    .where(eq(procedures.id, id));
+
+  return NextResponse.json({ success: true });
+}

@@ -3,7 +3,19 @@ import { db } from "@/lib/db/client";
 import { campusServices, offices } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
+
+export async function GET() {
+  const admin = await getSessionUser();
+  requireRole(admin, ["ADMIN"]);
+
+  const list = await db
+    .select()
+    .from(campusServices)
+    .orderBy(desc(campusServices.createdAt));
+
+  return NextResponse.json(list);
+}
 
 export async function POST(req: Request) {
   const admin = await getSessionUser();
@@ -13,18 +25,11 @@ export async function POST(req: Request) {
     name,
     description,
     category,
-    owningOffice, // ← this is officeId now
+    owningOffice,
     visibility,
   } = await req.json();
 
-  if (!name || !description || !category || !owningOffice) {
-    return NextResponse.json(
-      { error: "Missing required fields" },
-      { status: 400 }
-    );
-  }
-
-  // ✅ Validate office (NOT department)
+  // ✅ Validate office
   const office = await db
     .select()
     .from(offices)
@@ -42,37 +47,10 @@ export async function POST(req: Request) {
     name,
     description,
     category,
-    owningOffice, // office id stored here
-    visibility: visibility ?? "ALL_STUDENTS",
+    owningOffice,
+    visibility,
     isActive: true,
   });
 
-  return NextResponse.json({
-    success: true,
-    message: "Campus service created",
-  });
-}
-
-export async function GET() {
-  const admin = await getSessionUser();
-  requireRole(admin, ["ADMIN"]);
-
-  const services = await db
-    .select({
-      id: campusServices.id,
-      name: campusServices.name,
-      description: campusServices.description,
-      category: campusServices.category,
-      visibility: campusServices.visibility,
-      isActive: campusServices.isActive,
-      officeName: offices.name,
-    })
-    .from(campusServices)
-    .innerJoin(
-      offices,
-      eq(campusServices.owningOffice, offices.id)
-    )
-    .orderBy(campusServices.createdAt);
-
-  return NextResponse.json(services);
+  return NextResponse.json({ success: true });
 }

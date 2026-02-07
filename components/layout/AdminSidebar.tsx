@@ -12,7 +12,9 @@ const links = [
   { href: "/admin/campus-services", label: "Campus Services" },
   { href: "/admin/procedures", label: "Procedures" },
   { href: "/admin/hods", label: "HOD Management" },
-  { href: "/admin/offices", label: "Offices" },
+  { href: "/admin/master", label: "O&D Creation" },
+  { href: "/admin/academics", label: "Academic Events" },
+  { href: "/admin/feedback", label: "Feedback" },
 ];
 
 export function AdminSidebar() {

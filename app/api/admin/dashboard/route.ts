@@ -15,13 +15,14 @@ export async function GET() {
   requireRole(admin, ["ADMIN"]);
 
   const interactions = await db
-    .select({
-      intent: studentInteractions.intent,
-      userId: studentInteractions.userId,
-      departmentId: users.departmentId,
-    })
-    .from(studentInteractions)
-    .innerJoin(users, eq(users.id, studentInteractions.userId));
+  .select({
+    intent: studentInteractions.intent,
+    aiConfidence: studentInteractions.aiConfidence,
+    followUp: studentInteractions.followUp,
+    departmentId: users.departmentId,
+  })
+  .from(studentInteractions)
+  .innerJoin(users, eq(users.id, studentInteractions.userId));
 
   // -------- Domain PCI --------
   const domainGrouped: Record<string, any[]> = {};

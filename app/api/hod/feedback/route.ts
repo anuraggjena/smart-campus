@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { feedback, studentInteractions } from "@/lib/db/schema.runtime";
+import { departments, feedback, studentInteractions, users } from "@/lib/db/schema.runtime";
 import { desc, eq } from "drizzle-orm";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
-import { aggregateDomainPCI } from "@/lib/analytics/pciAggregator";
 
 export async function GET() {
   const hod = await getSessionUser();
@@ -14,22 +13,18 @@ export async function GET() {
 
   // Department feedback list
   const deptFeedback = await db
-    .select()
+    .select({
+        id: feedback.id,
+        message: feedback.message,
+        sentiment: feedback.sentiment,
+        priority: feedback.priority,
+        createdAt: feedback.createdAt,
+        studentName: users.name,
+      })
     .from(feedback)
+    .innerJoin(users, eq(users.id, feedback.userId))
     .where(eq(feedback.departmentId, dept))
     .orderBy(desc(feedback.createdAt));
 
-  // All student interactions for this department
-  const interactions = await db
-    .select()
-    .from(studentInteractions)
-    .where(eq(studentInteractions.departmentId, dept));
-
-  // 🎯 REAL PCI using your engine
-  const departmentPCI = aggregateDomainPCI(interactions);
-
-  return NextResponse.json({
-    feedback: deptFeedback,
-    pci: departmentPCI,
-  });
+  return NextResponse.json(deptFeedback);
 }

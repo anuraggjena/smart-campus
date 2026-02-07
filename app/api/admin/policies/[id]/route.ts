@@ -52,3 +52,15 @@ export async function PUT(
     message: "Policy updated",
   });
 }
+
+export async function DELETE(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+
+  await db.delete(policies)
+    .where(eq(policies.id, id));
+
+  return NextResponse.json({ success: true });
+}

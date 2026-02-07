@@ -5,18 +5,17 @@ import { useState } from "react";
 type AIResponse = {
   intent: string;
   confidence: number;
-  answer: string;
+  policies: { id: string; title: string }[];
+  procedures: { id: string; title: string }[];
 };
 
-type Message = {
-  role: "user" | "ai";
-  text: string;
-};
+type Message =
+  | { role: "user"; text: string }
+  | { role: "ai"; data: AIResponse };
 
 export default function StudentAssistantPage() {
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [response, setResponse] = useState<AIResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function askAI() {
@@ -30,18 +29,17 @@ export default function StudentAssistantPage() {
     const res = await fetch("/api/student/assistant/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: userMessage.text }),
+      body: JSON.stringify({ query }),
     });
 
-    const data = await res.json();
+    const data: AIResponse = await res.json();
 
     const aiMessage: Message = {
       role: "ai",
-      text: data.answer,
+      data,
     };
 
     setMessages((prev) => [...prev, aiMessage]);
-    setResponse(data);
     setLoading(false);
   }
 
@@ -74,7 +72,55 @@ export default function StudentAssistantPage() {
                   : "bg-white border"
               }`}
             >
-              {m.text}
+              {m.role === "ai" ? (
+                <div className="space-y-3">
+                  <div className="text-sm font-medium">
+                    Based on institutional records:
+                  </div>
+
+                  {m.data.policies.length > 0 && (
+                    <div>
+                      <div className="text-xs text-slate-500">Relevant Policies</div>
+                      <ul className="list-disc ml-5 text-sm">
+                        {m.data.policies.map((p) => (
+                          <li key={p.id}>
+                            <a
+                              href={`/student/policies/${p.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 underline"
+                            >
+                              {p.title}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {m.data.procedures.length > 0 && (
+                    <div>
+                      <div className="text-xs text-slate-500">Relevant Procedures</div>
+                      <ul className="list-disc ml-5 text-sm">
+                        {m.data.procedures.map((p) => (
+                          <li key={p.id}>
+                            <a
+                              href={`/student/procedures/${p.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 underline"
+                            >
+                              {p.title}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                m.text
+              )}
             </div>
           ))}
 
@@ -109,35 +155,42 @@ export default function StudentAssistantPage() {
           AI Insights
         </h2>
 
-        {response ? (
-          <>
-            <div>
-              <div className="text-xs text-slate-500">
-                Detected Intent
-              </div>
-              <div className="font-semibold text-lg">
-                {response.intent}
-              </div>
-            </div>
+        {messages.length > 0 &&
+          messages[messages.length - 1].role === "ai" ? (
+            (() => {
+              const last = messages[messages.length - 1] as {
+                role: "ai";
+                data: AIResponse;
+              };
 
-            <div>
-              <div className="text-xs text-slate-500">
-                Confidence Level
-              </div>
-              <div className="font-semibold text-lg">
-                {response.confidence}%
-              </div>
-            </div>
+              return (
+                <>
+                  <div>
+                    <div className="text-xs text-slate-500">Detected Intent</div>
+                    <div className="font-semibold text-lg">
+                      {last.data.intent}
+                    </div>
+                  </div>
 
-            <div className="text-xs text-slate-500">
-              This interaction contributes to campus policy clarity analytics.
+                  <div>
+                    <div className="text-xs text-slate-500">Confidence Level</div>
+                    <div className="font-semibold text-lg">
+                      {last.data.confidence}%
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-500">
+                    This interaction contributes to campus policy clarity analytics.
+                  </div>
+                </>
+              );
+            })()
+          ) : (
+            <div className="text-xs text-slate-400">
+              Ask a question to see AI analysis here.
             </div>
-          </>
-        ) : (
-          <div className="text-xs text-slate-400">
-            Ask a question to see AI analysis here.
-          </div>
-        )}
+          )}
+
       </div>
     </div>
   );

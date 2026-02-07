@@ -182,7 +182,9 @@ export const academicEvents = sqliteTable("academic_events", {
   }).notNull(),
   startDate: text("start_date").notNull(),
   endDate: text("end_date"),
-  createdByRole: text("created_by_role").notNull(), // HOD
+  createdByRole: text("created_by_role", {
+    enum: ["HOD", "ADMIN"],
+  }).notNull(), // HOD, ADMIN
   createdAt: text("created_at")
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),

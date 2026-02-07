@@ -1,221 +1,114 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-type CampusService = {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  visibility: string;
-  isActive: boolean;
-  officeName: string;
-};
+export default function CampusServicesAdmin() {
+  const [services, setServices] = useState<any[]>([]);
+  const [offices, setOffices] = useState<any[]>([]);
 
-type Office = {
-  id: string;
-  name: string;
-};
-
-export default function AdminCampusServicesPage() {
-  const [services, setServices] = useState<CampusService[]>([]);
-  const [offices, setOffices] = useState<Office[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  async function fetchServices() {
-    const res = await fetch("/api/admin/campus-services");
-    const data = await res.json();
-    setServices(data);
-  }
-
-  async function fetchOffices() {
-    const res = await fetch("/api/admin/offices");
-    const data = await res.json();
-    setOffices(data);
+  async function load() {
+    const s = await fetch("/api/admin/campus-services").then(r => r.json());
+    const o = await fetch("/api/offices").then(r => r.json());
+    setServices(s);
+    setOffices(o);
   }
 
   useEffect(() => {
-    fetchServices();
-    fetchOffices();
+    load();
   }, []);
 
-  async function toggleStatus(id: string, isActive: boolean) {
-    await fetch(`/api/admin/campus-services/${id}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !isActive }),
-    });
-    fetchServices();
-  }
-
-  async function handleCreate(e: any) {
+  async function createService(e: any) {
     e.preventDefault();
-    setLoading(true);
-
-    const form = e.target;
+    const f = e.target;
 
     await fetch("/api/admin/campus-services", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: form.name.value,
-        description: form.description.value,
-        category: form.category.value,
-        owningOfficeId: form.owningOfficeId.value,
-        visibility: form.visibility.value,
+        name: f.name.value,
+        description: f.description.value,
+        category: f.category.value,
+        owningOffice: f.office.value,
+        visibility: f.visibility.value,
       }),
     });
 
-    form.reset();
-    setLoading(false);
-    fetchServices();
+    f.reset();
+    load();
+  }
+
+  async function deleteService(id: string) {
+    const ok = confirm("Delete this service?");
+    if (!ok) return;
+
+    await fetch(`/api/admin/campus-services/${id}`, {
+      method: "DELETE",
+    });
+
+    load();
   }
 
   return (
     <div className="space-y-8 max-w-5xl">
-      <h2 className="text-2xl font-semibold">
-        Campus Services Management
-      </h2>
 
-      {/* CREATE SERVICE */}
       <Card>
-        <CardHeader>
-          <CardTitle>Create New Service</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={handleCreate}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
-          >
-            <div>
-              <Label>Name</Label>
-              <Input name="name" required />
-            </div>
+        <CardContent className="p-6 space-y-4">
+          <h2 className="text-xl font-semibold">Create Campus Service</h2>
 
-            <div>
-              <Label>Owning Office</Label>
-              <Select name="owningOfficeId" required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select office" />
-                </SelectTrigger>
-                <SelectContent>
-                  {offices.map((o) => (
-                    <SelectItem key={o.id} value={o.id}>
-                      {o.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <form onSubmit={createService} className="grid gap-3">
+            <Input name="name" placeholder="Service Name" required />
+            <Input name="description" placeholder="Description" required />
 
-            <div className="md:col-span-2">
-              <Label>Description</Label>
-              <Input name="description" required />
-            </div>
+            <select name="category" className="border p-2 rounded">
+              <option value="HOSTEL">Hostel</option>
+              <option value="TRANSPORT">Transport</option>
+              <option value="FEES">Fees</option>
+              <option value="SCHOLARSHIP">Scholarship</option>
+              <option value="LIBRARY">Library</option>
+              <option value="GENERAL">General</option>
+            </select>
 
-            <div>
-              <Label>Category</Label>
-              <Select name="category" required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="HOSTEL">Hostel</SelectItem>
-                  <SelectItem value="TRANSPORT">Transport</SelectItem>
-                  <SelectItem value="FEES">Fees</SelectItem>
-                  <SelectItem value="SCHOLARSHIP">Scholarship</SelectItem>
-                  <SelectItem value="LIBRARY">Library</SelectItem>
-                  <SelectItem value="GENERAL">General</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <select name="office" className="border p-2 rounded">
+              {offices.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.code} — {o.name}
+                </option>
+              ))}
+            </select>
 
-            <div>
-              <Label>Visibility</Label>
-              <Select name="visibility">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select visibility" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL_STUDENTS">
-                    All Students
-                  </SelectItem>
-                  <SelectItem value="HOSTELLERS_ONLY">
-                    Hostellers Only
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <select name="visibility" className="border p-2 rounded">
+              <option value="ALL_STUDENTS">All Students</option>
+              <option value="HOSTELLERS_ONLY">Hostellers Only</option>
+            </select>
 
-            <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create Service"}
-            </Button>
+            <Button type="submit">Create</Button>
           </form>
         </CardContent>
       </Card>
 
-      {/* SERVICES LIST */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Existing Services</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {services.map((service) => (
-            <div
-              key={service.id}
-              className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border p-4 rounded-md"
-            >
+      <div className="space-y-3">
+        {services.map((s) => (
+          <Card key={s.id}>
+            <CardContent className="p-4 flex justify-between">
               <div>
-                <p className="font-medium">{service.name}</p>
-                <p className="text-sm text-slate-600">
-                  {service.description}
-                </p>
-
-                <div className="flex gap-2 mt-2">
-                  <Badge>{service.category}</Badge>
-                  <Badge variant="outline">
-                    {service.visibility}
-                  </Badge>
-                  <Badge variant="secondary">
-                    {service.officeName}
-                  </Badge>
-                  {!service.isActive && (
-                    <Badge variant="destructive">
-                      Inactive
-                    </Badge>
-                  )}
-                </div>
+                <p className="font-semibold">{s.name}</p>
+                <p className="text-sm text-slate-600">{s.description}</p>
               </div>
 
               <Button
-                variant="outline"
-                onClick={() =>
-                  toggleStatus(service.id, service.isActive)
-                }
+                size="sm"
+                variant="destructive"
+                onClick={() => deleteService(s.id)}
               >
-                {service.isActive ? "Deactivate" : "Activate"}
+                Delete
               </Button>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

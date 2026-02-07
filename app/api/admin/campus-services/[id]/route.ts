@@ -51,3 +51,15 @@ export async function PUT(
     message: "Campus service updated",
   });
 }
+
+export async function DELETE(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+
+  await db.delete(campusServices)
+    .where(eq(campusServices.id, id));
+
+  return NextResponse.json({ success: true });
+}

@@ -38,30 +38,22 @@ export async function POST(req: Request) {
     departmentId: student.departmentId,
     role: "STUDENT",
     intent,
-    policyCode: resolution.matchedPolicyCode,
+    policyCode: resolution.policies[0]?.code ?? null,
+    procedureCode: resolution.procedures[0]?.code ?? null,
     aiConfidence: confidence,
     followUp,
   });
 
-  const policyText = resolution.policies
-    .map(p => `• ${p.title}`)
-    .join("\n");
-
-  const procedureText = resolution.procedures
-    .map(p => `• ${p.title}`)
-    .join("\n");
-
   return NextResponse.json({
     intent,
     confidence,
-    answer: `
-Based on institutional records:
-
-Relevant Policies:
-${policyText || "No specific policy found."}
-
-Relevant Procedures:
-${procedureText || "No specific procedure found."}
-    `.trim(),
+    policies: resolution.policies.map((p: any) => ({
+      id: p.id,
+      title: p.title,
+    })),
+    procedures: resolution.procedures.map((p: any) => ({
+      id: p.id,
+      title: p.title,
+    })),
   });
 }

@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { Topbar } from "@/components/layout/Topbar";
 import { HodSidebar } from "@/components/layout/HodSidebar";
 
 export default function HodLayout({

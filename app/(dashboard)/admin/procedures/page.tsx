@@ -57,6 +57,17 @@ export default function AdminProceduresPage() {
     fetchOffices();
   }, []);
 
+  async function load() {
+    const p = await fetch("/api/admin/procedures").then((r) => r.json());
+    const o = await fetch("/api/offices").then((r) => r.json());
+    setProcedures(p);
+    setOffices(o);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
   function updateStep(index: number, value: string) {
     const updated = [...steps];
     updated[index] = value;
@@ -65,6 +76,17 @@ export default function AdminProceduresPage() {
 
   function addStep() {
     setSteps([...steps, ""]);
+  }
+
+  async function deleteProcedure(id: string) {
+    const ok = confirm("Delete this procedure?");
+    if (!ok) return;
+
+    await fetch(`/api/admin/procedures/${id}`, {
+      method: "DELETE",
+    });
+
+    load();
   }
 
   async function toggleStatus(id: string, isActive: boolean) {
@@ -191,12 +213,10 @@ export default function AdminProceduresPage() {
                 </p>
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    toggleStatus(p.id, p.isActive)
-                  }
+                  variant="destructive"
+                  onClick={() => deleteProcedure(p.id)}
                 >
-                  {p.isActive ? "Deactivate" : "Activate"}
+                  Delete
                 </Button>
               </div>
 
