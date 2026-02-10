@@ -1,8 +1,11 @@
 import { cookies } from "next/headers";
+import AnnouncementsFeed from "./AnnouncementsFeed"; // Import the client component
+import { Megaphone, Sparkles } from "lucide-react";
 
 async function getAnnouncements() {
   const cookieStore = await cookies();
 
+  // Ensure this URL is correct for your environment (e.g. use process.env.NEXT_PUBLIC_API_URL if needed)
   const res = await fetch("http://localhost:3000/api/student/announcements", {
     headers: {
       Cookie: cookieStore.toString(),
@@ -10,149 +13,51 @@ async function getAnnouncements() {
     cache: "no-store",
   });
 
+  if (!res.ok) {
+      // Handle error gracefully or return empty array
+      return [];
+  }
+
   return res.json();
-}
-
-function groupAnnouncements(list: any[]) {
-  const today: any[] = [];
-  const week: any[] = [];
-  const older: any[] = [];
-
-  const now = new Date();
-
-  list.forEach((a) => {
-    const from = new Date(a.activeFrom);
-    const diffDays =
-      (now.getTime() - from.getTime()) / (1000 * 60 * 60 * 24);
-
-    if (diffDays <= 1) today.push(a);
-    else if (diffDays <= 7) week.push(a);
-    else older.push(a);
-  });
-
-  return { today, week, older };
-}
-
-function AnnouncementCard({ item }: any) {
-  const priorityStyles =
-    item.priority === "URGENT"
-      ? "border-red-400 bg-red-50"
-      : item.priority === "IMPORTANT"
-      ? "border-yellow-400 bg-yellow-50"
-      : "border-slate-200 bg-white";
-
-  return (
-    <div
-      className={`p-6 rounded-2xl border shadow-sm transition hover:shadow-md ${priorityStyles}`}
-    >
-      <div className="flex justify-between items-start mb-2">
-        <h3 className="font-semibold text-lg">{item.title}</h3>
-
-        <span
-          className={`text-xs px-3 py-1 rounded-full font-medium ${
-            item.priority === "URGENT"
-              ? "bg-red-600 text-white"
-              : item.priority === "IMPORTANT"
-              ? "bg-yellow-500 text-white"
-              : "bg-slate-200 text-slate-700"
-          }`}
-        >
-          {item.priority}
-        </span>
-      </div>
-
-      <p className="text-sm text-slate-700 mb-3 leading-relaxed">
-        {item.message}
-      </p>
-
-      <div className="text-xs text-slate-500">
-        Active from {new Date(item.activeFrom).toLocaleDateString()}
-      </div>
-    </div>
-  );
-}
-
-function Section({ title, items }: any) {
-  if (items.length === 0) return null;
-
-  return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-slate-800">
-        {title}
-      </h2>
-
-      <div className="grid gap-5">
-        {items.map((item: any) => (
-          <AnnouncementCard key={item.id} item={item} />
-        ))}
-      </div>
-    </div>
-  );
 }
 
 export default async function StudentAnnouncementsPage() {
   const data = await getAnnouncements();
 
+  // Initial Sort on Server
   data.sort(
     (a: any, b: any) =>
-      new Date(b.activeFrom).getTime() -
-      new Date(a.activeFrom).getTime()
+      new Date(b.activeFrom).getTime() - new Date(a.activeFrom).getTime()
   );
 
-  const { today, week, older } = groupAnnouncements(data);
-
-  const urgent = data.filter((a: any) => a.priority === "URGENT");
-  const highlights = data
-    .filter((a: any) => a.priority !== "URGENT")
-    .slice(0, 3);
-
   return (
-    <div className="space-y-10">
-
-      {/* Header */}
-      <div className="bg-linear-to-r from-indigo-600 to-slate-800 text-white p-8 rounded-2xl shadow">
-        <h1 className="text-3xl font-semibold">Campus Notice Board</h1>
-        <p className="text-sm opacity-80 mt-1">
-          Stay updated with what matters on campus
-        </p>
+    <div className="min-h-screen w-full bg-neutral-950 text-white p-6 md:p-10 relative overflow-hidden">
+      
+      {/* Background Ambience */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-600/10 blur-[120px]" />
+          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-rose-600/5 blur-[120px]" />
+          <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-10" />
       </div>
 
-      {/* 🔴 Urgent Strip */}
-      {urgent.length > 0 && (
-        <div className="p-6 rounded-2xl bg-red-600 text-white shadow-lg">
-          <h2 className="font-semibold text-lg mb-2">
-            Urgent Notices
-          </h2>
-          <ul className="list-disc pl-5 text-sm space-y-1">
-            {urgent.map((u: any) => (
-              <li key={u.id}>{u.title}</li>
-            ))}
-          </ul>
+      <div className="max-w-4xl mx-auto relative z-10 space-y-8">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-6 border-b border-white/10 bg-neutral-900/30 backdrop-blur-xl p-6 rounded-3xl border-t border-l border-white/5 shadow-2xl">
+           <div>
+              <div className="flex items-center gap-2 mb-2">
+                 <Sparkles size={16} className="text-indigo-400" />
+                 <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Digital Notice Board</span>
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Campus Notices</h1>
+              <p className="text-neutral-400 text-sm">Official communications from administration and faculty.</p>
+           </div>
         </div>
-      )}
 
-      {/* ⭐ Highlights */}
-      {highlights.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Highlights</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            {highlights.map((item: any) => (
-              <AnnouncementCard key={item.id} item={item} />
-            ))}
-          </div>
-        </section>
-      )}
+        {/* Client Component for Interactivity */}
+        <AnnouncementsFeed initialData={data} />
 
-      {/* Timeline sections */}
-      <Section title="Today" items={today} />
-      <Section title="This Week" items={week} />
-      <Section title="Earlier" items={older} />
-
-      {data.length === 0 && (
-        <div className="p-6 rounded-xl border bg-white shadow-sm">
-          No active announcements.
-        </div>
-      )}
+      </div>
     </div>
   );
 }

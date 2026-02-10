@@ -1,45 +1,33 @@
-import { callGroq } from "./groqService";
+import { groq } from "./groqClient";
 
-export async function generateStudentInsight(input: {
-  totalInteractions: number;
-  topDomains: { domain: string; count: number }[];
-  lowConfidenceCount: number;
-}) {
+export async function generateGroqInsights(
+  query: string,
+  title: string,
+  content: string
+) {
   const prompt = `
-A student has interacted with the campus system.
+You are an AI assistant for a Smart Campus.
 
-Summary:
-- Total questions asked: ${input.totalInteractions}
-- Frequently asked domains: ${input.topDomains
-    .map(d => `${d.domain} (${d.count})`)
-    .join(", ")}
-- Low confidence interactions: ${input.lowConfidenceCount}
+A student asked: "${query}"
 
-Explain what this suggests about the student's understanding.
-Provide 2–3 sentences.
-Do not mention AI or internal metrics.
-Tone: academic and supportive.
+Here is the official campus document titled "${title}":
+
+${content}
+
+Your job:
+1. Explain this to the student in simple, friendly language in 100 words or less.
+2. Highlight important points students usually miss.
+3. Give a short summary at the end.
+4. Answer in a helpful, conversational way.
+
+Do NOT repeat the document. Explain it.
 `;
 
-  return callGroq(prompt);
-}
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.3,
+  });
 
-export async function generateAdminInsight(input: {
-  domain: string;
-  pci: number;
-  totalQueries: number;
-}) {
-  const prompt = `
-University policy analytics summary:
-
-Domain: ${input.domain}
-Process Clarity Index: ${input.pci}
-Total related student queries: ${input.totalQueries}
-
-Explain what this indicates about process clarity and what administrators should consider improving.
-Limit to 3 sentences.
-Tone: professional and advisory.
-`;
-
-  return callGroq(prompt);
+  return completion.choices[0].message.content;
 }

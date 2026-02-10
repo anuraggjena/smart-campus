@@ -7,10 +7,14 @@ import { eq } from "drizzle-orm";
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  // 1. Update the type definition to Promise
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const admin = await getSessionUser();
   requireRole(admin, ["ADMIN"]);
+
+  // 2. Await the params before using them
+  const { id } = await params;
 
   const {
     code,
@@ -45,7 +49,8 @@ export async function PUT(
       content,
       version,
     })
-    .where(eq(policies.id, params.id));
+    // 3. Use the destructured 'id' variable
+    .where(eq(policies.id, id));
 
   return NextResponse.json({
     success: true,
@@ -55,9 +60,14 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  context: { params: Promise<{ id: string }> }
+  // 1. Update the type definition to Promise
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
+  const admin = await getSessionUser();
+  requireRole(admin, ["ADMIN"]);
+
+  // 2. Await the params
+  const { id } = await params;
 
   await db.delete(policies)
     .where(eq(policies.id, id));

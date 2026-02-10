@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db/client";
-import { offices } from "@/lib/db/schema.runtime";
+import { academicEvents } from "@/lib/db/schema.runtime";
 import { getSessionUser } from "@/lib/auth/auth";
 import { requireRole } from "@/lib/auth/rbac";
 import { eq } from "drizzle-orm";
 
-// UPDATE OFFICE
+// UPDATE EVENT
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -13,19 +13,24 @@ export async function PUT(
   const admin = await getSessionUser();
   requireRole(admin, ["ADMIN"]);
 
-  // Await params for Next.js 15 compatibility
   const { id } = await params;
   const body = await req.json();
 
+  // We only update the content fields, keeping metadata (createdByRole, departmentId) intact
   await db
-    .update(offices)
-    .set(body)
-    .where(eq(offices.id, id));
+    .update(academicEvents)
+    .set({
+      title: body.title,
+      description: body.description,
+      startDate: body.startDate,
+      endDate: body.endDate,
+    })
+    .where(eq(academicEvents.id, id));
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, message: "Event updated" });
 }
 
-// DELETE OFFICE
+// DELETE EVENT
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -33,12 +38,11 @@ export async function DELETE(
   const admin = await getSessionUser();
   requireRole(admin, ["ADMIN"]);
 
-  // Await params for Next.js 15 compatibility
   const { id } = await params;
 
   await db
-    .delete(offices)
-    .where(eq(offices.id, id));
+    .delete(academicEvents)
+    .where(eq(academicEvents.id, id));
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, message: "Event deleted" });
 }
